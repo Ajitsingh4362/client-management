@@ -26,18 +26,19 @@ module.exports = async (req, res) => {
     const { category_id } = req.query;
     let query = supabase
       .from('clients')
-      .select('name, phone_number, address, created_at, categories(name)')
+      .select('name, phone_number, address, status, created_at, categories(name)')
       .order('created_at', { ascending: false });
     if (category_id) query = query.eq('category_id', category_id);
 
     const { data, error } = await query;
     if (error) throw error;
 
-    const header = ['Name', 'Phone', 'Category', 'Address', 'Added On'];
+    const header = ['Name', 'Phone', 'Category', 'Status', 'Address', 'Added On'];
     const rows = data.map(c => [
       csvEscape(c.name),
       csvEscape(c.phone_number),
       csvEscape(c.categories ? c.categories.name : ''),
+      csvEscape(c.status || 'new'),
       csvEscape(c.address),
       csvEscape(new Date(c.created_at).toLocaleDateString('en-IN'))
     ].join(','));

@@ -188,8 +188,23 @@
   .link-btn { color: var(--primary); }
   .delete-btn { color: var(--danger); }
   .empty { color: var(--muted); text-align: center; padding: 30px 0; }
-  .badge { background: #eef1ff; color: #2952e3; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+  .badge { background: #eef1ff; color: #2952e3; padding: 2px 8px; border-radius: 999px; font-size: 12px; white-space: nowrap; }
   .badge.role-admin { background: #fdf0e3; color: #b25b0d; }
+  .badge.status-new { background: #eef1ff; color: #2952e3; }
+  .badge.status-in_progress { background: #fff4e0; color: #b25b0d; }
+  .badge.status-completed { background: #e6f6ec; color: #1e8f5a; }
+  .badge.status-declined { background: #fdf1ef; color: #dc2626; }
+
+  .status-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .status-btn { padding: 8px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: #fff; }
+  .status-btn.active { color: #fff; border-color: transparent; }
+  .status-btn[data-s="in_progress"].active { background: var(--warn); }
+  .status-btn[data-s="completed"].active { background: #1e8f5a; }
+  .status-btn.decline { color: var(--danger); border-color: rgba(220,38,38,.3); }
+  .status-btn.decline:hover { background: #fdf1ef; }
+  .decline-note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+
+  .table-wrap { overflow-x: auto; }
 
   .back-link { display: inline-block; margin-bottom: 14px; color: var(--muted); cursor: pointer; font-size: 13px; }
   .back-link:hover { color: var(--primary); }
@@ -222,6 +237,56 @@
   .wa-qr-img { width: 220px; height: 220px; border: 8px solid #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12); margin: 12px 0; }
   .wa-hint { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
   .wa-unreachable { background: #fdf1ef; border: 1px solid rgba(220,38,38,.25); border-radius: var(--radius); padding: 14px 16px; color: var(--danger); font-size: 13px; }
+
+  /* ---------- Mobile layout (phones/small tablets) ---------- */
+  @media (max-width: 768px) {
+    .shell { flex-direction: column; }
+
+    .sidebar {
+      width: 100%; flex-direction: row; position: fixed; bottom: 0; left: 0; z-index: 500;
+      border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: env(safe-area-inset-bottom);
+    }
+    .sidebar .brand, .sidebar .footer { display: none; }
+    .sidebar nav {
+      flex: 1; display: flex; padding: 4px; gap: 2px; overflow-x: auto;
+    }
+    .sidebar .nav-item {
+      flex: 1; flex-direction: column; gap: 3px; padding: 7px 4px; font-size: 10.5px;
+      text-align: center; margin-bottom: 0; white-space: nowrap; border-radius: 8px;
+    }
+    .sidebar .nav-item .dot { display: none; }
+
+    .content { padding-bottom: 64px; }
+    .topbar { padding: 14px 16px; }
+    main { padding: 16px; }
+
+    .form-grid { grid-template-columns: 1fr; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .toolbar input[type=text] { min-width: 0; }
+
+    table { font-size: 13px; }
+    th, td { padding: 8px 6px; }
+
+    .detail-head { flex-direction: column; gap: 10px; }
+    .detail-head button { align-self: flex-start; }
+
+    .note-add-row { flex-direction: column; }
+    .note-add-row textarea, .note-add-row input[type=date] { flex: 1; width: 100%; }
+
+    .stat-cards { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Logout needs to live somewhere on mobile since the sidebar footer is hidden */
+  @media (max-width: 768px) {
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
+    .topbar .mobile-logout {
+      display: inline-block; font-size: 12px; color: var(--muted); background: none;
+      border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; cursor: pointer;
+    }
+  }
+  @media (min-width: 769px) {
+    .topbar .mobile-logout { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -337,6 +402,7 @@
     <div class="content">
       <div class="topbar">
         <h1 id="page-title">Dashboard</h1>
+        <button class="mobile-logout" onclick="logout()">Logout</button>
       </div>
 
       <main>
@@ -378,13 +444,22 @@
             <div class="toolbar">
               <input type="text" id="search-box" placeholder="Search by name or phone..." oninput="debouncedSearch()" />
               <select id="filter-category" onchange="loadClients()"></select>
+              <select id="filter-status" onchange="loadClients()">
+                <option value="">All statuses</option>
+                <option value="new">New</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="declined">Declined</option>
+              </select>
               <div class="spacer"></div>
               <button class="btn-secondary" onclick="exportCsv()">Export CSV</button>
             </div>
+            <div class="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Address</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody id="clients-body"></tbody>
             </table>
+            </div>
             <div class="empty" id="empty-state" style="display:none;">No clients found.</div>
           </div>
         </section>
@@ -400,6 +475,8 @@
               </div>
               <button class="btn-secondary" onclick="editFromDetail()">Edit</button>
             </div>
+            <div class="status-actions" id="detail-status-actions"></div>
+            <div class="decline-note" id="detail-decline-note"></div>
           </div>
           <div class="card">
             <h2>Follow-up Notes</h2>
@@ -434,10 +511,12 @@
           </div>
           <div class="card">
             <h2>Employees</h2>
+            <div class="table-wrap">
             <table>
               <thead><tr><th>User ID</th><th>Role</th><th>Added</th><th>Actions</th></tr></thead>
               <tbody id="employees-body"></tbody>
             </table>
+            </div>
           </div>
         </section>
 
@@ -446,6 +525,15 @@
           <div class="card" id="wa-status-card">
             <h2>WhatsApp Connection</h2>
             <div id="wa-status-body">Checking status...</div>
+          </div>
+
+          <div class="card">
+            <h2>Auto Message (har 2 din me jaata hai)</h2>
+            <p class="wa-hint" style="margin-top:0;">Ye message har client ko automatically har 2 din me jaata hai, jab tak wo "Completed" na ho ya "mana" na kar de (30 din pause). <code>{name}</code> = client ka naam, <code>{business}</code> = uska category/business type se replace ho jaata hai.</p>
+            <textarea id="wa-template" rows="4" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:14px;" placeholder="Loading..."></textarea>
+            <div class="form-actions"><button class="btn-primary" onclick="saveTemplate()">Save Template</button></div>
+            <div class="error" id="wa-template-error"></div>
+            <div class="wa-success" id="wa-template-success"></div>
           </div>
 
           <div class="card">
@@ -533,7 +621,7 @@
     if (view === 'dashboard') loadStats();
     if (view === 'activity') loadActivity();
     if (view === 'employees') loadEmployees();
-    if (view === 'whatsapp') { waCheckStatus(); waLoadClientsForSelect(); } else { clearInterval(waPollTimer); }
+    if (view === 'whatsapp') { waCheckStatus(); waLoadClientsForSelect(); loadTemplate(); } else { clearInterval(waPollTimer); }
   }
 
   function authHeaders() { return { 'Content-Type': 'application/json', 'x-admin-token': token }; }
@@ -598,12 +686,23 @@
     searchTimer = setTimeout(loadClients, 300);
   }
 
+  const STATUS_LABELS = { new: 'New', in_progress: 'In Progress', completed: 'Completed', declined: 'Declined' };
+
+  function statusBadge(c) {
+    const label = STATUS_LABELS[c.status] || 'New';
+    let extra = '';
+    if (c.status === 'declined' && c.declined_until) extra = ` (until ${c.declined_until})`;
+    return `<span class="badge status-${c.status || 'new'}">${label}${extra}</span>`;
+  }
+
   async function loadClients() {
     const search = document.getElementById('search-box') ? document.getElementById('search-box').value.trim() : '';
     const categoryId = document.getElementById('filter-category') ? document.getElementById('filter-category').value : '';
+    const statusFilter = document.getElementById('filter-status') ? document.getElementById('filter-status').value : '';
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (categoryId) params.set('category_id', categoryId);
+    if (statusFilter) params.set('status', statusFilter);
     const res = await apiGet('/api/clients?' + params.toString());
     if (!res.ok) return;
     const clients = await res.json();
@@ -616,7 +715,7 @@
         <td>${escapeHtml(c.name)}</td>
         <td>${escapeHtml(c.phone_number)}</td>
         <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
-        <td>${escapeHtml(c.address || '—')}</td>
+        <td>${statusBadge(c)}</td>
         <td class="actions" onclick="event.stopPropagation()">
           <button class="link-btn" onclick='editClient(${JSON.stringify(c)})'>Edit</button>
           <button class="delete-btn" onclick="deleteClient('${c.id}')">Delete</button>
@@ -699,11 +798,47 @@
       escapeHtml(client.address || 'No address');
     document.getElementById('detail-note-input').value = '';
     document.getElementById('detail-note-due').value = '';
+    renderDetailStatus();
     switchView('client-detail');
     await loadDetailNotes();
   }
 
   function editFromDetail() { editClient(currentDetailClient); }
+
+  function renderDetailStatus() {
+    const c = currentDetailClient;
+    const status = c.status || 'new';
+    const btn = (s, label) => `<button class="status-btn ${status === s ? 'active' : ''}" data-s="${s}" onclick="setClientStatus('${s}')">${label}</button>`;
+    document.getElementById('detail-status-actions').innerHTML =
+      btn('in_progress', 'In Progress') + btn('completed', 'Completed') +
+      `<button class="status-btn decline" onclick="declineClient()">Client ne mana kiya (30 din pause)</button>`;
+    const noteEl = document.getElementById('detail-decline-note');
+    if (status === 'declined' && c.declined_until) {
+      noteEl.textContent = `Auto-message paused ${c.declined_until} tak. Upar "In Progress" ya "Completed" click karke dobara active kar sakte hain.`;
+    } else {
+      noteEl.textContent = '';
+    }
+  }
+
+  async function setClientStatus(status) {
+    const res = await fetch('/api/clients', { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ id: currentDetailClient.id, status }) });
+    if (res.ok) {
+      currentDetailClient = await res.json();
+      currentDetailClient.categories = currentDetailClient.categories || null;
+      renderDetailStatus();
+      await loadClients();
+    }
+  }
+
+  async function declineClient() {
+    if (!confirm('Client ne mana kar diya? Isko 30 din tak auto-message nahi jayega.')) return;
+    const res = await fetch('/api/clients', { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ id: currentDetailClient.id, decline: true }) });
+    if (res.ok) {
+      currentDetailClient = await res.json();
+      renderDetailStatus();
+      await loadClients();
+    }
+  }
 
   async function loadDetailNotes() {
     const res = await apiGet('/api/notes?client_id=' + currentDetailClient.id);
@@ -899,6 +1034,27 @@
       if (!res.ok || !data.ok) throw new Error(data.error || 'Send failed');
       okEl.textContent = 'Message bhej diya gaya.';
       document.getElementById('wa-message').value = '';
+    } catch (e) { errEl.textContent = e.message; }
+  }
+
+  /* ---------- Auto message template ---------- */
+  async function loadTemplate() {
+    const res = await apiGet('/api/settings');
+    if (!res.ok) return;
+    const data = await res.json();
+    document.getElementById('wa-template').value = data.auto_message_template || '';
+  }
+
+  async function saveTemplate() {
+    const errEl = document.getElementById('wa-template-error');
+    const okEl = document.getElementById('wa-template-success');
+    errEl.textContent = ''; okEl.textContent = '';
+    const value = document.getElementById('wa-template').value.trim();
+    if (!value) { errEl.textContent = 'Template khali nahi ho sakta'; return; }
+    try {
+      const res = await fetch('/api/settings', { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ auto_message_template: value }) });
+      if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+      okEl.textContent = 'Template save ho gaya.';
     } catch (e) { errEl.textContent = e.message; }
   }
 </script>

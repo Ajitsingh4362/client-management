@@ -18,10 +18,10 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === 'GET') {
-      const { search, category_id } = req.query;
+      const { search, category_id, status } = req.query;
       let query = supabase
         .from('clients')
-        .select('id, name, phone_number, address, created_at, updated_at, categories(id, name)')
+        .select('id, name, phone_number, address, status, declined_until, last_message_at, created_at, updated_at, categories(id, name)')
         .order('created_at', { ascending: false });
 
       if (search) {
@@ -29,6 +29,9 @@ module.exports = async (req, res) => {
       }
       if (category_id) {
         query = query.eq('category_id', category_id);
+      }
+      if (status) {
+        query = query.eq('status', status);
       }
 
       const { data, error } = await query;
@@ -51,15 +54,39 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'PUT') {
-      const { id, name, phone_number, address, category_id } = req.body || {};
+      const { id, name, phone_number, address, category_id, status, decline } = req.body || {};
       if (!id) return res.status(400).json({ error: 'id required hai' });
-      const { data, error } = await supabase
-        .from('clients')
-        .update({ name, phone_number, address, category_id: category_id || null })
-        .eq('id', id)
-        .select();
+
+      const update = {};
+      if (name !== undefined) update.name = name;
+      if (phone_number !== undefined) update.phone_number = phone_number;
+      if (address !== undefined) update.address = address;
+      if (category_id !== undefined) update.category_id = category_id || null;
+
+      if (decline) {
+        // Client ne mana kar diya -> 30 din tak auto-message pause
+        const pauseUntil = new Date();
+        pauseUntil.setDate(pauseUntil.getDate() + 30);
+        update.status = 'declined';
+        update.declined_until = pauseUntil.toISOString().slice(0, 10);
+      } else if (status !== undefined) {
+        if (!['new', 'in_progress', 'completed', 'declined'].includes(status)) {
+          return res.status(400).json({ error: 'Invalid status' });
+        }
+        update.status = status;
+        if (status !== 'declined') update.declined_until = null; // pause hata do jab status manually change ho
+      }
+
+      const { data, error } = await supabase.from('clients').update(update).eq('id', id).select();
       if (error) throw error;
-      await logActivity(user.username, 'updated client', 'client', name);
+
+      if (decline) {
+        await logActivity(user.username, 'client declined (30 din pause)', 'client', data[0] ? data[0].name : id);
+      } else if (status !== undefined) {
+        await logActivity(user.username, `status → ${status}`, 'client', data[0] ? data[0].name : id);
+      } else {
+        await logActivity(user.username, 'updated client', 'client', name);
+      }
       return res.status(200).json(data[0]);
     }
 

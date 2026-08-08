@@ -48,10 +48,26 @@ Deploy se pehle Vercel dashboard me ye Environment Variables add karein (Project
 ## Features
 
 - **Dashboard** — total clients, category-wise breakdown, today's & overdue follow-up reminders
-- **Clients** — add/edit/delete, search (name/phone), filter by category, CSV export
-- **Client detail page** — full info + follow-up notes with optional due dates (mark done/pending)
-- **Activity log** — who did what, when (client/note/employee changes)
+- **Clients** — add/edit/delete, search (name/phone), filter by category/status, CSV export
+- **Client pipeline status** — every client is New → In Progress → Completed, or Declined (client ne mana kiya → 30 din auto-message pause)
+- **Auto WhatsApp message every 2 days** — Vercel Cron hits `/api/auto-notify` daily; it messages every client who isn't Completed/currently-paused and hasn't been messaged in the last 2 days. Message template is editable from the WhatsApp tab (admin only)
+- **Client detail page** — full info + status controls + follow-up notes with optional due dates (mark done/pending)
+- **Activity log** — who did what, when (client/note/employee changes, auto-message runs)
 - **Employees** — admin can add/remove staff logins with role (admin/staff); staff can't manage employees
+
+## Setting up the 2-day auto-message
+
+1. Run `supabase/migration_pipeline.sql` once in Supabase Dashboard → SQL Editor (adds `status`, `declined_until`, `last_message_at` columns + an `app_settings` table).
+2. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
+3. In Vercel → Project → Settings → Environment Variables, add:
+
+| Key | Value |
+|---|---|
+| `WHATSAPP_NOTIFIER_URL` | URL of your deployed `whatsapp-notifier` service |
+| `CRON_SECRET` | Any random long string — Vercel automatically sends it as `Authorization: Bearer <value>` on cron runs, so `/api/auto-notify` can verify the request is really from Vercel Cron |
+
+4. `vercel.json` already schedules the cron (`30 4 * * *` = 10:00 AM IST daily). Vercel checks this endpoint once a day; the endpoint itself only messages clients whose last auto-message was 2+ days ago, so each client still gets messaged roughly every 2 days.
+5. Edit the message text anytime from the admin panel's WhatsApp tab — use `{name}` and `{business}` as placeholders.
 
 ## Structure
 
