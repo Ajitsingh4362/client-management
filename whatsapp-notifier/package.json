@@ -1,0 +1,17 @@
+{
+  "name": "zentrycs-whatsapp-notifier",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "cors": "^2.8.6",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.1",
+    "pino": "^9.3.2",
+    "qrcode": "^1.5.4"
+  }
+}

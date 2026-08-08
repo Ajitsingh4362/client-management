@@ -213,6 +213,15 @@
   .activity-item:last-child { border-bottom: none; }
   .activity-item .who { font-weight: 600; }
   .activity-item .when { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+  .wa-success { color: #1e8f5a; font-size: 13px; min-height: 18px; }
+  .wa-state { text-align: center; padding: 10px 0; }
+  .wa-state .badge-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .wa-connected .badge-dot { background: #1e8f5a; }
+  .wa-disconnected .badge-dot { background: var(--danger); }
+  .wa-qr-img { width: 220px; height: 220px; border: 8px solid #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12); margin: 12px 0; }
+  .wa-hint { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+  .wa-unreachable { background: #fdf1ef; border: 1px solid rgba(220,38,38,.25); border-radius: var(--radius); padding: 14px 16px; color: var(--danger); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -317,6 +326,7 @@
         <div class="nav-item" data-view="clients" onclick="switchView('clients')"><span class="dot"></span> Clients</div>
         <div class="nav-item" data-view="activity" onclick="switchView('activity')"><span class="dot"></span> Activity Log</div>
         <div class="nav-item" data-view="employees" id="nav-employees" onclick="switchView('employees')" style="display:none;"><span class="dot"></span> Employees</div>
+        <div class="nav-item" data-view="whatsapp" id="nav-whatsapp" onclick="switchView('whatsapp')" style="display:none;"><span class="dot"></span> WhatsApp</div>
       </nav>
       <div class="footer">
         <div class="whoami" id="whoami"></div>
@@ -430,6 +440,31 @@
             </table>
           </div>
         </section>
+
+        <!-- WHATSAPP (admin only) -->
+        <section class="view" id="view-whatsapp">
+          <div class="card" id="wa-status-card">
+            <h2>WhatsApp Connection</h2>
+            <div id="wa-status-body">Checking status...</div>
+          </div>
+
+          <div class="card">
+            <h2>Send WhatsApp Message</h2>
+            <div class="form-grid">
+              <div class="full">
+                <label>Client</label>
+                <select id="wa-client"><option value="">— Select client —</option></select>
+              </div>
+              <div class="full">
+                <label>Message</label>
+                <textarea id="wa-message" rows="3" placeholder="Type your message..."></textarea>
+              </div>
+            </div>
+            <div class="form-actions"><button class="btn-primary" onclick="sendWhatsAppMsg()">Send Message</button></div>
+            <div class="error" id="wa-send-error"></div>
+            <div class="wa-success" id="wa-send-success"></div>
+          </div>
+        </section>
       </main>
     </div>
   </div>
@@ -437,6 +472,11 @@
 
 <script>
   let token = sessionStorage.getItem('admin_token') || '';
+  // Standalone WhatsApp notifier service (whatsapp-notifier/ folder) — deploy
+  // it separately (Render recommended) and paste its URL here. See
+  // whatsapp-notifier/README.md for setup steps.
+  const WHATSAPP_NOTIFIER_URL = 'https://YOUR-WHATSAPP-NOTIFIER.onrender.com';
+  let waPollTimer = null;
   let currentUser = JSON.parse(sessionStorage.getItem('admin_user') || 'null');
   let editingId = null;
   let categories = [];
@@ -478,6 +518,7 @@
     document.getElementById('app').style.display = 'block';
     document.getElementById('whoami').textContent = currentUser.username + ' · ' + currentUser.role;
     document.getElementById('nav-employees').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+    document.getElementById('nav-whatsapp').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
     await loadCategories();
     await loadClients();
     await loadStats();
@@ -487,11 +528,12 @@
     document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
     document.getElementById('view-' + view).classList.add('active');
-    const titles = { dashboard: 'Dashboard', clients: 'Clients', activity: 'Activity Log', employees: 'Employees', 'client-detail': 'Client Details' };
+    const titles = { dashboard: 'Dashboard', clients: 'Clients', activity: 'Activity Log', employees: 'Employees', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
     document.getElementById('page-title').textContent = titles[view] || view;
     if (view === 'dashboard') loadStats();
     if (view === 'activity') loadActivity();
     if (view === 'employees') loadEmployees();
+    if (view === 'whatsapp') { waCheckStatus(); waLoadClientsForSelect(); } else { clearInterval(waPollTimer); }
   }
 
   function authHeaders() { return { 'Content-Type': 'application/json', 'x-admin-token': token }; }
@@ -757,6 +799,107 @@
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  /* ---------- WhatsApp ---------- */
+  function waHeaders() { return { 'Content-Type': 'application/json', 'x-admin-token': token }; }
+
+  async function waCheckStatus() {
+    const body = document.getElementById('wa-status-body');
+    try {
+      const res = await fetch(WHATSAPP_NOTIFIER_URL + '/status');
+      const data = await res.json();
+      waRenderStatus(data.connected);
+    } catch (e) {
+      body.innerHTML = '<div class="wa-unreachable">WhatsApp service abhi reachable nahi hai. Agar Render free tier use kar rahe hain to pehli request ke baad 20-40 sec lag sakte hain (service so gayi thi) — thodi der baad phir try karein. Agar phir bhi na chale, check karein ki <code>WHATSAPP_NOTIFIER_URL</code> sahi set hai.</div>';
+    }
+  }
+
+  function waRenderStatus(connected) {
+    const body = document.getElementById('wa-status-body');
+    if (connected) {
+      body.innerHTML = `
+        <div class="wa-state wa-connected">
+          <p><span class="badge-dot"></span><b>Connected</b> — messages is number se jaayenge.</p>
+          <button class="btn-secondary" onclick="waLogout()" id="wa-logout-btn">Disconnect</button>
+        </div>`;
+      clearInterval(waPollTimer);
+    } else {
+      body.innerHTML = `
+        <div class="wa-state wa-disconnected">
+          <p><span class="badge-dot"></span>Not connected.</p>
+          <button class="btn-primary" onclick="waGenerateQr()" id="wa-qr-btn">Generate QR</button>
+          <div id="wa-qr-holder"></div>
+        </div>`;
+    }
+  }
+
+  function waGenerateQr() {
+    const btn = document.getElementById('wa-qr-btn');
+    if (btn) btn.textContent = 'Generating...';
+    waPollQr();
+    clearInterval(waPollTimer);
+    waPollTimer = setInterval(waPollQr, 2000);
+  }
+
+  async function waPollQr() {
+    try {
+      const res = await fetch(WHATSAPP_NOTIFIER_URL + '/qr', { headers: waHeaders() });
+      if (res.status === 401 || res.status === 403) {
+        clearInterval(waPollTimer);
+        document.getElementById('wa-status-body').innerHTML = '<div class="wa-unreachable">Sirf admin WhatsApp connect kar sakte hain.</div>';
+        return;
+      }
+      const data = await res.json();
+      if (data.connected) { clearInterval(waPollTimer); waRenderStatus(true); return; }
+      const holder = document.getElementById('wa-qr-holder');
+      if (holder && data.qr) {
+        holder.innerHTML = `<img src="${data.qr}" class="wa-qr-img" alt="WhatsApp QR" /><div class="wa-hint">Scan karein: WhatsApp → Settings → Linked Devices → Link a Device</div>`;
+      }
+    } catch (e) {
+      clearInterval(waPollTimer);
+    }
+  }
+
+  async function waLogout() {
+    if (!confirm('WhatsApp disconnect karna hai? Dobara connect karne ke liye QR scan karna padega.')) return;
+    try {
+      await fetch(WHATSAPP_NOTIFIER_URL + '/logout', { method: 'POST', headers: waHeaders() });
+    } catch (e) { /* ignore */ }
+    waCheckStatus();
+  }
+
+  async function waLoadClientsForSelect() {
+    const sel = document.getElementById('wa-client');
+    try {
+      const res = await apiGet('/api/clients');
+      if (!res.ok) return;
+      const list = await res.json();
+      sel.innerHTML = '<option value="">— Select client —</option>' +
+        list.map(c => `<option value="${c.id}" data-phone="${escapeHtml(c.phone_number || '')}">${escapeHtml(c.name)} (${escapeHtml(c.phone_number || 'no phone')})</option>`).join('');
+    } catch (e) { /* ignore */ }
+  }
+
+  async function sendWhatsAppMsg() {
+    const errEl = document.getElementById('wa-send-error');
+    const okEl = document.getElementById('wa-send-success');
+    errEl.textContent = ''; okEl.textContent = '';
+    const sel = document.getElementById('wa-client');
+    const opt = sel.selectedOptions[0];
+    const phone = opt ? opt.dataset.phone : '';
+    const message = document.getElementById('wa-message').value.trim();
+    if (!sel.value) { errEl.textContent = 'Client select karein'; return; }
+    if (!phone) { errEl.textContent = 'Is client ka phone number saved nahi hai'; return; }
+    if (!message) { errEl.textContent = 'Message likhein'; return; }
+    try {
+      const res = await fetch(WHATSAPP_NOTIFIER_URL + '/notify', {
+        method: 'POST', headers: waHeaders(), body: JSON.stringify({ number: phone, message })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Send failed');
+      okEl.textContent = 'Message bhej diya gaya.';
+      document.getElementById('wa-message').value = '';
+    } catch (e) { errEl.textContent = e.message; }
   }
 </script>
 
