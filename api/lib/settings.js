@@ -11,6 +11,10 @@ const DEFAULT_TEMPLATE =
 const DEFAULT_TEMPLATE_FOREIGN =
   'Hi {name}! I help businesses like {business} build a professional website and admin panel — so customers can reach you online and your records are easy to manage. Interested? Let me know!';
 
+const DEFAULT_INVOICE_COMPANY_NAME = 'Zentrycs';
+const DEFAULT_INVOICE_COMPANY_CONTACT = '';
+const DEFAULT_INVOICE_COMPANY_ADDRESS = '';
+
 async function getSetting(key, fallback) {
   const { data, error } = await supabase.from('app_settings').select('value').eq('key', key).maybeSingle();
   if (error || !data) return fallback;
@@ -24,4 +28,8 @@ async function setSetting(key, value) {
   if (error) throw error;
 }
 
-module.exports = { getSetting, setSetting, DEFAULT_TEMPLATE, DEFAULT_TEMPLATE_FOREIGN };
+module.exports = {
+  getSetting, setSetting,
+  DEFAULT_TEMPLATE, DEFAULT_TEMPLATE_FOREIGN,
+  DEFAULT_INVOICE_COMPANY_NAME, DEFAULT_INVOICE_COMPANY_CONTACT, DEFAULT_INVOICE_COMPANY_ADDRESS,
+};

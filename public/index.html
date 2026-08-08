@@ -247,6 +247,7 @@
   .deal-grid select, .deal-grid input[type=number] { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
   .deal-grid input[type=range] { width: 100%; }
   .deal-grid .full { grid-column: 1 / -1; }
+  .doc-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .status-btn[data-s="confirmed"].active { background: #1e8f5a; }
   .status-btn[data-s="pending"].active { background: var(--warn); }
 
@@ -663,6 +664,13 @@
                 <label>Deadline</label>
                 <input type="date" id="detail-deal-deadline" />
               </div>
+              <div class="full deal-confirmed-only" id="deal-documents-field" style="display:none;">
+                <label>Documents</label>
+                <div class="doc-actions">
+                  <button class="btn-secondary" onclick="downloadDoc('quotation')">Download Quotation (PDF)</button>
+                  <button class="btn-secondary" onclick="downloadDoc('invoice')">Download Invoice (PDF)</button>
+                </div>
+              </div>
               <div class="full">
                 <label>Work Progress — <span id="detail-progress-val">0%</span></label>
                 <input type="range" id="detail-progress" min="0" max="100" step="5"
@@ -739,6 +747,19 @@
             <div class="form-actions"><button class="btn-primary" onclick="saveTemplateForeign()">Save Template</button></div>
             <div class="error" id="wa-template-foreign-error"></div>
             <div class="wa-success" id="wa-template-foreign-success"></div>
+          </div>
+
+          <div class="card">
+            <h2>Invoice / Quotation Details</h2>
+            <p class="wa-hint" style="margin-top:0;">Shown on every Quotation/Invoice PDF generated from a client's profile page.</p>
+            <div class="form-grid">
+              <div><label>Company Name</label><input type="text" id="inv-company-name" placeholder="e.g. Zentrycs" /></div>
+              <div><label>Contact (phone / email)</label><input type="text" id="inv-company-contact" placeholder="e.g. contact@zentrycs.com | +91 90000 00000" /></div>
+              <div class="full"><label>Address</label><input type="text" id="inv-company-address" placeholder="e.g. Delhi, India" /></div>
+            </div>
+            <div class="form-actions"><button class="btn-primary" onclick="saveInvoiceSettings()">Save Details</button></div>
+            <div class="error" id="inv-settings-error"></div>
+            <div class="wa-success" id="inv-settings-success"></div>
           </div>
 
           <div class="card">
@@ -1263,6 +1284,7 @@
     const showConfirmedFields = dealStatus === 'confirmed';
     document.getElementById('deal-amount-field').style.display = showConfirmedFields ? '' : 'none';
     document.getElementById('deal-deadline-field').style.display = showConfirmedFields ? '' : 'none';
+    document.getElementById('deal-documents-field').style.display = showConfirmedFields ? '' : 'none';
     const progress = c.progress_percent || 0;
     document.getElementById('detail-progress').value = progress;
     document.getElementById('detail-progress-val').textContent = progress + '%';
@@ -1302,6 +1324,11 @@
       okEl.textContent = 'Saved.';
       await loadStats();
     } catch (e) { errEl.textContent = e.message; }
+  }
+
+  function downloadDoc(type) {
+    const params = new URLSearchParams({ client_id: currentDetailClient.id, type, token });
+    window.open('/api/invoice?' + params.toString(), '_blank');
   }
 
   async function loadDetailNotes() {
@@ -1509,6 +1536,9 @@
     const data = await res.json();
     document.getElementById('wa-template').value = data.auto_message_template || '';
     document.getElementById('wa-template-foreign').value = data.auto_message_template_foreign || '';
+    document.getElementById('inv-company-name').value = data.invoice_company_name || '';
+    document.getElementById('inv-company-contact').value = data.invoice_company_contact || '';
+    document.getElementById('inv-company-address').value = data.invoice_company_address || '';
   }
 
   async function saveTemplate() {
@@ -1534,6 +1564,26 @@
       const res = await fetch('/api/settings', { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ auto_message_template_foreign: value }) });
       if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
       okEl.textContent = 'Template saved.';
+    } catch (e) { errEl.textContent = e.message; }
+  }
+
+  async function saveInvoiceSettings() {
+    const errEl = document.getElementById('inv-settings-error');
+    const okEl = document.getElementById('inv-settings-success');
+    errEl.textContent = ''; okEl.textContent = '';
+    const name = document.getElementById('inv-company-name').value.trim();
+    if (!name) { errEl.textContent = 'Company name cannot be empty'; return; }
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT', headers: authHeaders(),
+        body: JSON.stringify({
+          invoice_company_name: name,
+          invoice_company_contact: document.getElementById('inv-company-contact').value.trim(),
+          invoice_company_address: document.getElementById('inv-company-address').value.trim(),
+        })
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+      okEl.textContent = 'Details saved.';
     } catch (e) { errEl.textContent = e.message; }
   }
 </script>
