@@ -117,7 +117,10 @@
   #app { display: none; min-height: 100vh; }
   .shell { display: flex; min-height: 100vh; }
 
-  .sidebar { width: 220px; background: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar {
+    width: 220px; background: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; flex-shrink: 0;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
   .sidebar .brand { padding: 18px 18px; font-weight: 700; font-size: 16px; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 9px; }
   .sidebar .brand span { color: var(--accent-2); }
   .sidebar .brand .brand-mark { width: 24px; height: auto; flex-shrink: 0; }
@@ -287,6 +290,7 @@
     .sidebar {
       width: 100%; flex-direction: row; position: fixed; bottom: 0; left: 0; z-index: 500;
       border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: env(safe-area-inset-bottom);
+      height: auto; overflow-y: visible;
     }
     .sidebar .brand, .sidebar .footer { display: none; }
     .sidebar nav {
