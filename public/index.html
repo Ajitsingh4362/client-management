@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Zentrycs — Client Dashboard</title>
+<link rel="icon" type="image/png" href="favicon.png" />
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
 <style>
   :root {
     --bg: #f4f5f7;
@@ -79,10 +81,8 @@
     100% { opacity: 1; transform: translateY(0); }
   }
   .login-logo { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .login-logo svg { width: 50px; height: 50px; }
-  .login-brand { font-size: 20px; font-weight: 800; color: var(--text); }
-  .login-brand span { display: block; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--accent-1); text-transform: uppercase; margin-top: 3px; }
-  .login-sub { color: var(--muted); font-size: 13px; margin: 4px 0 24px; }
+  .login-logo-img { max-width: 220px; width: 100%; height: auto; }
+  .login-sub { color: var(--muted); font-size: 13px; margin: 10px 0 24px; }
 
   .input-group { position: relative; margin-bottom: 14px; text-align: left; }
   .input-group .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
@@ -118,8 +118,9 @@
   .shell { display: flex; min-height: 100vh; }
 
   .sidebar { width: 220px; background: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; flex-shrink: 0; }
-  .sidebar .brand { padding: 20px 18px; font-weight: 700; font-size: 16px; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .sidebar .brand { padding: 18px 18px; font-weight: 700; font-size: 16px; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 9px; }
   .sidebar .brand span { color: var(--accent-2); }
+  .sidebar .brand .brand-mark { width: 24px; height: auto; flex-shrink: 0; }
   .sidebar nav { flex: 1; padding: 14px 10px; }
   .sidebar .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-bottom: 4px; color: var(--sidebar-text); }
   .sidebar .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
@@ -277,19 +278,7 @@
 
   <div class="login-card">
     <div class="login-logo">
-      <svg viewBox="0 0 48 48" fill="none">
-        <rect width="48" height="48" rx="12" fill="url(#logoGrad)"/>
-        <defs>
-          <linearGradient id="logoGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-            <stop stop-color="#2952e3"/>
-            <stop offset="1" stop-color="#7c5cff"/>
-          </linearGradient>
-        </defs>
-        <rect x="12" y="24" width="6" height="14" rx="1.5" fill="#ffffff"/>
-        <rect x="21" y="18" width="6" height="20" rx="1.5" fill="#ffffff"/>
-        <rect x="30" y="10" width="6" height="28" rx="1.5" fill="#ffffff" opacity=".9"/>
-      </svg>
-      <div class="login-brand">Zentrycs<span>Client Management</span></div>
+      <img src="assets/logo.png" alt="Zentrycs Technology" class="login-logo-img" />
     </div>
     <p class="login-sub">Sign in to your admin dashboard</p>
 
@@ -322,7 +311,7 @@
 <div id="app">
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand">Zentrycs <span>Clients</span></div>
+      <div class="brand"><img src="assets/logo-mark.png" alt="Zentrycs" class="brand-mark" /> Zentrycs <span>Clients</span></div>
       <nav>
         <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')"><span class="dot"></span> Dashboard</div>
         <div class="nav-item" data-view="clients" onclick="switchView('clients')"><span class="dot"></span> Clients</div>
