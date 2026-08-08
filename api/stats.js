@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { requireAuth } = require('./lib/auth');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -8,14 +9,11 @@ const supabase = createClient(
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,x-admin-token');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const token = req.headers['x-admin-token'];
-  if (!token || token !== process.env.ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
+  const user = requireAuth(req, res);
+  if (!user) return;
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
@@ -24,14 +22,10 @@ module.exports = async (req, res) => {
       .select('*', { count: 'exact', head: true });
     if (countErr) throw countErr;
 
-    const { data: categories, error: catErr } = await supabase
-      .from('categories')
-      .select('id, name');
+    const { data: categories, error: catErr } = await supabase.from('categories').select('id, name');
     if (catErr) throw catErr;
 
-    const { data: clients, error: clientErr } = await supabase
-      .from('clients')
-      .select('category_id');
+    const { data: clients, error: clientErr } = await supabase.from('clients').select('category_id');
     if (clientErr) throw clientErr;
 
     const categoryBreakdown = categories.map(cat => ({
@@ -39,13 +33,21 @@ module.exports = async (req, res) => {
       name: cat.name,
       count: clients.filter(c => c.category_id === cat.id).length
     }));
-
     const uncategorized = clients.filter(c => !c.category_id).length;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { count: dueTodayCount } = await supabase
+      .from('client_notes')
+      .select('*', { count: 'exact', head: true })
+      .not('due_date', 'is', null)
+      .eq('done', false)
+      .lte('due_date', today);
 
     return res.status(200).json({
       totalClients: totalClients || 0,
       categoryBreakdown,
-      uncategorized
+      uncategorized,
+      dueFollowUps: dueTodayCount || 0
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });

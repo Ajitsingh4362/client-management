@@ -14,6 +14,7 @@
     --primary: #2952e3;
     --primary-dark: #1f3fc0;
     --danger: #dc2626;
+    --warn: #d9822b;
     --sidebar-bg: #14161f;
     --sidebar-text: #b7bacb;
     --sidebar-active: #2952e3;
@@ -31,20 +32,13 @@
     color: var(--text);
   }
 
-  /* ---------- Login ---------- */
   #login-screen {
-    max-width: 360px;
-    margin: 15vh auto;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 32px;
-    text-align: center;
+    max-width: 360px; margin: 15vh auto; background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 32px; text-align: center;
   }
   #login-screen h2 { margin-top: 0; }
   #login-screen input {
-    width: 100%; padding: 10px 12px; margin: 8px 0; border: 1px solid var(--border);
-    border-radius: 6px; font-size: 14px;
+    width: 100%; padding: 10px 12px; margin: 8px 0; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;
   }
   #login-screen button {
     width: 100%; padding: 10px; background: var(--primary); color: #fff; border: none;
@@ -53,71 +47,39 @@
   #login-screen button:hover { background: var(--primary-dark); }
   .error { color: var(--danger); font-size: 13px; min-height: 18px; }
 
-  /* ---------- Shell ---------- */
   #app { display: none; min-height: 100vh; }
   .shell { display: flex; min-height: 100vh; }
 
-  .sidebar {
-    width: 220px;
-    background: var(--sidebar-bg);
-    color: var(--sidebar-text);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-  }
-  .sidebar .brand {
-    padding: 20px 18px;
-    font-weight: 700;
-    font-size: 16px;
-    color: #fff;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-  }
+  .sidebar { width: 220px; background: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar .brand { padding: 20px 18px; font-weight: 700; font-size: 16px; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.08); }
   .sidebar .brand span { color: var(--accent-2); }
   .sidebar nav { flex: 1; padding: 14px 10px; }
-  .sidebar .nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px; border-radius: 8px; cursor: pointer;
-    font-size: 14px; margin-bottom: 4px; color: var(--sidebar-text);
-  }
+  .sidebar .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-bottom: 4px; color: var(--sidebar-text); }
   .sidebar .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
   .sidebar .nav-item.active { background: var(--sidebar-active); color: #fff; }
   .sidebar .nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .6; }
   .sidebar .footer { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,0.08); }
-  .sidebar .footer button {
-    width: 100%; background: none; border: 1px solid rgba(255,255,255,0.15); color: var(--sidebar-text);
-    padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px;
-  }
+  .sidebar .footer .whoami { font-size: 12px; color: #8b8ea3; margin-bottom: 8px; }
+  .sidebar .footer button { width: 100%; background: none; border: 1px solid rgba(255,255,255,0.15); color: var(--sidebar-text); padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
   .sidebar .footer button:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
 
   .content { flex: 1; min-width: 0; }
-  .topbar {
-    background: var(--panel); border-bottom: 1px solid var(--border);
-    padding: 16px 28px; display: flex; justify-content: space-between; align-items: center;
-  }
+  .topbar { background: var(--panel); border-bottom: 1px solid var(--border); padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; }
   .topbar h1 { font-size: 18px; margin: 0; }
-  .topbar .who { font-size: 13px; color: var(--muted); }
   main { max-width: 1080px; margin: 0 auto; padding: 24px 28px; }
 
   .view { display: none; }
   .view.active { display: block; }
 
-  /* ---------- Dashboard cards ---------- */
   .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
-  .stat-card {
-    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 18px; border-top: 3px solid var(--accent-1);
-  }
+  .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; border-top: 3px solid var(--accent-1); }
   .stat-card .n { font-size: 28px; font-weight: 700; }
   .stat-card .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-top: 2px; }
-  .stat-card.c1 { border-top-color: var(--accent-1); }
   .stat-card.c2 { border-top-color: var(--accent-2); }
   .stat-card.c3 { border-top-color: var(--accent-3); }
-  .stat-card.c4 { border-top-color: var(--accent-4); }
+  .stat-card.warn .n { color: var(--warn); }
 
-  .card {
-    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 20px; margin-bottom: 20px;
-  }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
   .card h2 { margin-top: 0; font-size: 15px; }
   .card h2.row { display: flex; justify-content: space-between; align-items: center; }
 
@@ -128,51 +90,61 @@
   .breakdown-row .bar-fill { height: 100%; background: var(--primary); border-radius: 999px; }
   .breakdown-row .count { flex: 0 0 34px; text-align: right; color: var(--muted); font-size: 13px; }
 
-  /* ---------- Forms ---------- */
+  .followup-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .followup-item:last-child { border-bottom: none; }
+  .followup-item .txt { flex: 1; cursor: pointer; }
+  .followup-item .txt b { color: var(--primary); }
+  .followup-item .due { font-size: 12px; color: var(--danger); }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .toolbar input[type=text], .toolbar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+  .toolbar input[type=text] { flex: 1; min-width: 180px; }
+  .toolbar .spacer { flex: 1; }
+
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-grid label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
-  .form-grid input, .form-grid select, .form-grid textarea {
-    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;
-  }
+  .form-grid input, .form-grid select, .form-grid textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
   .form-grid .full { grid-column: 1 / -1; }
   .form-actions { margin-top: 14px; display: flex; gap: 10px; }
   .btn-primary { padding: 9px 18px; background: var(--primary); color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
   .btn-primary:hover { background: var(--primary-dark); }
   .btn-secondary { padding: 9px 18px; background: none; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 14px; }
 
-  /* ---------- Table ---------- */
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
   td.actions { white-space: nowrap; }
   td.actions button { border: none; background: none; cursor: pointer; font-size: 13px; margin-right: 10px; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover { background: var(--bg); }
   .link-btn { color: var(--primary); }
   .delete-btn { color: var(--danger); }
   .empty { color: var(--muted); text-align: center; padding: 30px 0; }
   .badge { background: #eef1ff; color: #2952e3; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+  .badge.role-admin { background: #fdf0e3; color: #b25b0d; }
 
-  /* ---------- Notes modal ---------- */
-  .modal-overlay {
-    display: none; position: fixed; inset: 0; background: rgba(15,17,23,0.5);
-    align-items: center; justify-content: center; z-index: 50;
-  }
-  .modal-overlay.active { display: flex; }
-  .modal {
-    background: var(--panel); border-radius: var(--radius); width: 480px; max-width: 92vw;
-    max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
-  }
-  .modal-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-  .modal-head h3 { margin: 0; font-size: 15px; }
-  .modal-head button { border: none; background: none; font-size: 18px; cursor: pointer; color: var(--muted); }
-  .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
-  .modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
-  .modal-foot textarea { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; resize: none; }
+  .back-link { display: inline-block; margin-bottom: 14px; color: var(--muted); cursor: pointer; font-size: 13px; }
+  .back-link:hover { color: var(--primary); }
+  .detail-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .detail-head h2 { margin: 0 0 4px 0; font-size: 20px; }
+  .detail-meta { color: var(--muted); font-size: 14px; }
+
   .note-item { border-bottom: 1px solid var(--border); padding: 10px 0; }
   .note-item:last-child { border-bottom: none; }
   .note-item .txt { font-size: 14px; }
-  .note-item .meta { display: flex; justify-content: space-between; margin-top: 4px; }
+  .note-item .txt.done { text-decoration: line-through; color: var(--muted); }
+  .note-item .meta { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; gap: 8px; }
   .note-item .meta small { color: var(--muted); font-size: 11px; }
-  .note-item .meta button { border: none; background: none; color: var(--danger); font-size: 11px; cursor: pointer; }
+  .note-item .meta .due-tag { font-size: 11px; background: #fdf0e3; color: #b25b0d; padding: 1px 6px; border-radius: 4px; }
+  .note-item .meta button { border: none; background: none; font-size: 11px; cursor: pointer; }
+  .note-add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .note-add-row textarea { flex: 2; min-width: 180px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; resize: none; }
+  .note-add-row input[type=date] { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+
+  .activity-item { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-item .who { font-weight: 600; }
+  .activity-item .when { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -190,14 +162,13 @@
     <aside class="sidebar">
       <div class="brand">Zentrycs <span>Clients</span></div>
       <nav>
-        <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
-          <span class="dot"></span> Dashboard
-        </div>
-        <div class="nav-item" data-view="clients" onclick="switchView('clients')">
-          <span class="dot"></span> Clients
-        </div>
+        <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')"><span class="dot"></span> Dashboard</div>
+        <div class="nav-item" data-view="clients" onclick="switchView('clients')"><span class="dot"></span> Clients</div>
+        <div class="nav-item" data-view="activity" onclick="switchView('activity')"><span class="dot"></span> Activity Log</div>
+        <div class="nav-item" data-view="employees" id="nav-employees" onclick="switchView('employees')" style="display:none;"><span class="dot"></span> Employees</div>
       </nav>
       <div class="footer">
+        <div class="whoami" id="whoami"></div>
         <button onclick="logout()">Logout</button>
       </div>
     </aside>
@@ -205,14 +176,18 @@
     <div class="content">
       <div class="topbar">
         <h1 id="page-title">Dashboard</h1>
-        <div class="who">Logged in</div>
       </div>
 
       <main>
-        <!-- DASHBOARD VIEW -->
+        <!-- DASHBOARD -->
         <section class="view active" id="view-dashboard">
           <div class="stat-cards" id="stat-cards">
-            <div class="stat-card c1"><div class="n" id="stat-total">—</div><div class="l">Total Clients</div></div>
+            <div class="stat-card"><div class="n" id="stat-total">—</div><div class="l">Total Clients</div></div>
+            <div class="stat-card warn"><div class="n" id="stat-followups">—</div><div class="l">Due Follow-ups</div></div>
+          </div>
+          <div class="card">
+            <h2>Today's &amp; Overdue Follow-ups</h2>
+            <div id="followups-list"></div>
           </div>
           <div class="card">
             <h2>Clients by Category</h2>
@@ -220,27 +195,15 @@
           </div>
         </section>
 
-        <!-- CLIENTS VIEW -->
+        <!-- CLIENTS LIST -->
         <section class="view" id="view-clients">
           <div class="card">
             <h2 id="form-title">Add New Client</h2>
             <div class="form-grid">
-              <div>
-                <label>Client Name</label>
-                <input type="text" id="f-name" placeholder="e.g. Ramesh Traders" />
-              </div>
-              <div>
-                <label>Phone Number</label>
-                <input type="text" id="f-phone" placeholder="e.g. +91 98765 43210" />
-              </div>
-              <div>
-                <label>Category</label>
-                <select id="f-category"></select>
-              </div>
-              <div class="full">
-                <label>Address</label>
-                <textarea id="f-address" rows="2" placeholder="Client address"></textarea>
-              </div>
+              <div><label>Client Name</label><input type="text" id="f-name" placeholder="e.g. Ramesh Traders" /></div>
+              <div><label>Phone Number</label><input type="text" id="f-phone" placeholder="e.g. +91 98765 43210" /></div>
+              <div><label>Category</label><select id="f-category"></select></div>
+              <div class="full"><label>Address</label><textarea id="f-address" rows="2" placeholder="Client address"></textarea></div>
             </div>
             <div class="form-actions">
               <button class="btn-primary" onclick="saveClient()">Save Client</button>
@@ -251,13 +214,69 @@
 
           <div class="card">
             <h2>Clients</h2>
+            <div class="toolbar">
+              <input type="text" id="search-box" placeholder="Search by name or phone..." oninput="debouncedSearch()" />
+              <select id="filter-category" onchange="loadClients()"></select>
+              <div class="spacer"></div>
+              <button class="btn-secondary" onclick="exportCsv()">Export CSV</button>
+            </div>
             <table>
-              <thead>
-                <tr><th>Name</th><th>Phone</th><th>Category</th><th>Address</th><th>Actions</th></tr>
-              </thead>
+              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Address</th><th>Actions</th></tr></thead>
               <tbody id="clients-body"></tbody>
             </table>
-            <div class="empty" id="empty-state" style="display:none;">No clients yet — add your first one above.</div>
+            <div class="empty" id="empty-state" style="display:none;">No clients found.</div>
+          </div>
+        </section>
+
+        <!-- CLIENT DETAIL -->
+        <section class="view" id="view-client-detail">
+          <div class="back-link" onclick="switchView('clients')">← Back to Clients</div>
+          <div class="card">
+            <div class="detail-head">
+              <div>
+                <h2 id="detail-name">—</h2>
+                <div class="detail-meta" id="detail-meta"></div>
+              </div>
+              <button class="btn-secondary" onclick="editFromDetail()">Edit</button>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Follow-up Notes</h2>
+            <div id="detail-notes-list"></div>
+            <div class="note-add-row">
+              <textarea id="detail-note-input" rows="2" placeholder="Follow-up note likhein..."></textarea>
+              <input type="date" id="detail-note-due" />
+              <button class="btn-primary" onclick="addDetailNote()">Add</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ACTIVITY LOG -->
+        <section class="view" id="view-activity">
+          <div class="card">
+            <h2>Recent Activity</h2>
+            <div id="activity-list"></div>
+          </div>
+        </section>
+
+        <!-- EMPLOYEES (admin only) -->
+        <section class="view" id="view-employees">
+          <div class="card">
+            <h2>Add Employee</h2>
+            <div class="form-grid">
+              <div><label>User ID</label><input type="text" id="e-username" placeholder="e.g. suman" /></div>
+              <div><label>Password</label><input type="text" id="e-password" placeholder="Set a password" /></div>
+              <div><label>Role</label><select id="e-role"><option value="staff">Staff</option><option value="admin">Admin</option></select></div>
+            </div>
+            <div class="form-actions"><button class="btn-primary" onclick="addEmployee()">Add Employee</button></div>
+            <div class="error" id="employee-error"></div>
+          </div>
+          <div class="card">
+            <h2>Employees</h2>
+            <table>
+              <thead><tr><th>User ID</th><th>Role</th><th>Added</th><th>Actions</th></tr></thead>
+              <tbody id="employees-body"></tbody>
+            </table>
           </div>
         </section>
       </main>
@@ -265,28 +284,15 @@
   </div>
 </div>
 
-<!-- Notes modal -->
-<div class="modal-overlay" id="notes-modal">
-  <div class="modal">
-    <div class="modal-head">
-      <h3 id="notes-client-name">Notes</h3>
-      <button onclick="closeNotes()">✕</button>
-    </div>
-    <div class="modal-body" id="notes-list"></div>
-    <div class="modal-foot">
-      <textarea id="note-input" rows="2" placeholder="Follow-up note likhein..."></textarea>
-      <button class="btn-primary" onclick="addNote()">Add</button>
-    </div>
-  </div>
-</div>
-
 <script>
   let token = sessionStorage.getItem('admin_token') || '';
+  let currentUser = JSON.parse(sessionStorage.getItem('admin_user') || 'null');
   let editingId = null;
   let categories = [];
-  let currentNotesClientId = null;
+  let currentDetailClient = null;
+  let searchTimer = null;
 
-  if (token) showApp();
+  if (token && currentUser) showApp();
 
   async function login() {
     const username = document.getElementById('username').value;
@@ -295,23 +301,23 @@
     errEl.textContent = '';
     try {
       const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Login failed');
       const data = await res.json();
       token = data.token;
+      currentUser = { username: data.username, role: data.role };
       sessionStorage.setItem('admin_token', token);
+      sessionStorage.setItem('admin_user', JSON.stringify(currentUser));
       showApp();
-    } catch (e) {
-      errEl.textContent = e.message;
-    }
+    } catch (e) { errEl.textContent = e.message; }
   }
 
   function logout() {
     sessionStorage.removeItem('admin_token');
-    token = '';
+    sessionStorage.removeItem('admin_user');
+    token = ''; currentUser = null;
     document.getElementById('app').style.display = 'none';
     document.getElementById('login-screen').style.display = 'block';
   }
@@ -319,6 +325,8 @@
   async function showApp() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
+    document.getElementById('whoami').textContent = currentUser.username + ' · ' + currentUser.role;
+    document.getElementById('nav-employees').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
     await loadCategories();
     await loadClients();
     await loadStats();
@@ -328,29 +336,39 @@
     document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
     document.getElementById('view-' + view).classList.add('active');
-    document.getElementById('page-title').textContent = view === 'dashboard' ? 'Dashboard' : 'Clients';
+    const titles = { dashboard: 'Dashboard', clients: 'Clients', activity: 'Activity Log', employees: 'Employees', 'client-detail': 'Client Details' };
+    document.getElementById('page-title').textContent = titles[view] || view;
     if (view === 'dashboard') loadStats();
+    if (view === 'activity') loadActivity();
+    if (view === 'employees') loadEmployees();
   }
 
-  function authHeaders() {
-    return { 'Content-Type': 'application/json', 'x-admin-token': token };
+  function authHeaders() { return { 'Content-Type': 'application/json', 'x-admin-token': token }; }
+
+  async function apiGet(url) {
+    const res = await fetch(url, { headers: authHeaders() });
+    if (res.status === 401) { logout(); throw new Error('Session expired'); }
+    return res;
   }
 
+  /* ---------- Categories ---------- */
   async function loadCategories() {
-    const res = await fetch('/api/categories', { headers: authHeaders() });
+    const res = await apiGet('/api/categories');
     if (!res.ok) return;
     categories = await res.json();
-    const sel = document.getElementById('f-category');
-    sel.innerHTML = '<option value="">— Select category —</option>' +
-      categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('f-category').innerHTML = '<option value="">— Select category —</option>' +
+      categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    document.getElementById('filter-category').innerHTML = '<option value="">All categories</option>' +
+      categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   }
 
+  /* ---------- Dashboard ---------- */
   async function loadStats() {
-    const res = await fetch('/api/stats', { headers: authHeaders() });
-    if (res.status === 401) { logout(); return; }
+    const res = await apiGet('/api/stats');
     if (!res.ok) return;
     const stats = await res.json();
     document.getElementById('stat-total').textContent = stats.totalClients;
+    document.getElementById('stat-followups').textContent = stats.dueFollowUps;
 
     const max = Math.max(1, ...stats.categoryBreakdown.map(c => c.count), stats.uncategorized);
     const colors = ['var(--accent-1)', 'var(--accent-2)', 'var(--accent-3)', 'var(--accent-4)'];
@@ -359,44 +377,58 @@
         <div class="name">${escapeHtml(c.name)}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${(c.count / max) * 100}%; background:${colors[i % colors.length]}"></div></div>
         <div class="count">${c.count}</div>
-      </div>
-    `).join('');
+      </div>`).join('');
     if (stats.uncategorized > 0) {
-      rows += `
-        <div class="breakdown-row">
-          <div class="name">Uncategorized</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${(stats.uncategorized / max) * 100}%; background:#9ca3af"></div></div>
-          <div class="count">${stats.uncategorized}</div>
-        </div>`;
+      rows += `<div class="breakdown-row"><div class="name">Uncategorized</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(stats.uncategorized / max) * 100}%; background:#9ca3af"></div></div>
+        <div class="count">${stats.uncategorized}</div></div>`;
     }
     document.getElementById('category-breakdown').innerHTML = rows || '<div class="empty">Koi data nahi hai abhi.</div>';
+
+    const fRes = await apiGet('/api/notes?upcoming=1');
+    const followups = fRes.ok ? await fRes.json() : [];
+    const fList = document.getElementById('followups-list');
+    if (!followups.length) {
+      fList.innerHTML = '<div class="empty">Koi pending follow-up nahi hai.</div>';
+    } else {
+      fList.innerHTML = followups.map(f => `
+        <div class="followup-item">
+          <div class="txt" onclick="openClientDetail('${f.client_id}')"><b>${escapeHtml(f.clients ? f.clients.name : '')}</b> — ${escapeHtml(f.note)}</div>
+          <div class="due">${f.due_date}</div>
+        </div>`).join('');
+    }
+  }
+
+  /* ---------- Clients list ---------- */
+  function debouncedSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(loadClients, 300);
   }
 
   async function loadClients() {
-    const res = await fetch('/api/clients', { headers: authHeaders() });
-    if (res.status === 401) { logout(); return; }
+    const search = document.getElementById('search-box') ? document.getElementById('search-box').value.trim() : '';
+    const categoryId = document.getElementById('filter-category') ? document.getElementById('filter-category').value : '';
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (categoryId) params.set('category_id', categoryId);
+    const res = await apiGet('/api/clients?' + params.toString());
+    if (!res.ok) return;
     const clients = await res.json();
     const body = document.getElementById('clients-body');
     const empty = document.getElementById('empty-state');
-    if (!clients.length) {
-      body.innerHTML = '';
-      empty.style.display = 'block';
-      return;
-    }
+    if (!clients.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
     empty.style.display = 'none';
     body.innerHTML = clients.map(c => `
-      <tr>
+      <tr class="clickable" onclick="openClientDetail('${c.id}')">
         <td>${escapeHtml(c.name)}</td>
         <td>${escapeHtml(c.phone_number)}</td>
         <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
         <td>${escapeHtml(c.address || '—')}</td>
-        <td class="actions">
+        <td class="actions" onclick="event.stopPropagation()">
           <button class="link-btn" onclick='editClient(${JSON.stringify(c)})'>Edit</button>
-          <button class="link-btn" onclick="openNotes('${c.id}', ${JSON.stringify(c.name)})">Notes</button>
           <button class="delete-btn" onclick="deleteClient('${c.id}')">Delete</button>
         </td>
-      </tr>
-    `).join('');
+      </tr>`).join('');
   }
 
   function editClient(c) {
@@ -407,6 +439,7 @@
     document.getElementById('f-address').value = c.address || '';
     document.getElementById('f-category').value = c.category_id || (c.categories ? c.categories.id : '');
     document.getElementById('cancel-edit').style.display = 'inline-block';
+    switchView('clients');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -430,10 +463,7 @@
       address: document.getElementById('f-address').value.trim(),
       category_id: document.getElementById('f-category').value || null
     };
-    if (!payload.name || !payload.phone_number) {
-      errEl.textContent = 'Name aur phone number required hain';
-      return;
-    }
+    if (!payload.name || !payload.phone_number) { errEl.textContent = 'Name aur phone number required hain'; return; }
     try {
       let res;
       if (editingId) {
@@ -445,9 +475,7 @@
       resetForm();
       await loadClients();
       await loadStats();
-    } catch (e) {
-      errEl.textContent = e.message;
-    }
+    } catch (e) { errEl.textContent = e.message; }
   }
 
   async function deleteClient(id) {
@@ -457,50 +485,122 @@
     await loadStats();
   }
 
-  /* ---------- Notes ---------- */
-  async function openNotes(clientId, clientName) {
-    currentNotesClientId = clientId;
-    document.getElementById('notes-client-name').textContent = 'Notes — ' + clientName;
-    document.getElementById('note-input').value = '';
-    document.getElementById('notes-modal').classList.add('active');
-    await loadNotes();
+  function exportCsv() {
+    const categoryId = document.getElementById('filter-category').value;
+    const params = new URLSearchParams({ token });
+    if (categoryId) params.set('category_id', categoryId);
+    window.open('/api/export?' + params.toString(), '_blank');
   }
 
-  function closeNotes() {
-    document.getElementById('notes-modal').classList.remove('active');
-    currentNotesClientId = null;
+  /* ---------- Client detail ---------- */
+  async function openClientDetail(id) {
+    const res = await apiGet('/api/clients?search=');
+    const all = res.ok ? await res.json() : [];
+    const client = all.find(c => c.id === id);
+    if (!client) return;
+    currentDetailClient = client;
+    document.getElementById('detail-name').textContent = client.name;
+    document.getElementById('detail-meta').innerHTML =
+      escapeHtml(client.phone_number) + ' · ' +
+      (client.categories ? escapeHtml(client.categories.name) : 'No category') + ' · ' +
+      escapeHtml(client.address || 'No address');
+    document.getElementById('detail-note-input').value = '';
+    document.getElementById('detail-note-due').value = '';
+    switchView('client-detail');
+    await loadDetailNotes();
   }
 
-  async function loadNotes() {
-    const res = await fetch('/api/notes?client_id=' + currentNotesClientId, { headers: authHeaders() });
-    const notes = await res.json();
-    const list = document.getElementById('notes-list');
-    if (!notes.length) {
-      list.innerHTML = '<div class="empty">Koi note nahi hai abhi.</div>';
-      return;
-    }
+  function editFromDetail() { editClient(currentDetailClient); }
+
+  async function loadDetailNotes() {
+    const res = await apiGet('/api/notes?client_id=' + currentDetailClient.id);
+    const notes = res.ok ? await res.json() : [];
+    const list = document.getElementById('detail-notes-list');
+    if (!notes.length) { list.innerHTML = '<div class="empty">Koi note nahi hai abhi.</div>'; return; }
     list.innerHTML = notes.map(n => `
       <div class="note-item">
-        <div class="txt">${escapeHtml(n.note)}</div>
+        <div class="txt ${n.done ? 'done' : ''}">${escapeHtml(n.note)}</div>
         <div class="meta">
           <small>${new Date(n.created_at).toLocaleString('en-IN')}</small>
-          <button onclick="deleteNote('${n.id}')">Delete</button>
+          ${n.due_date ? `<span class="due-tag">Due: ${n.due_date}</span>` : ''}
+          <span style="flex:1"></span>
+          ${n.due_date ? `<button onclick="toggleNoteDone('${n.id}', ${!n.done})">${n.done ? 'Mark pending' : 'Mark done'}</button>` : ''}
+          <button onclick="deleteDetailNote('${n.id}')">Delete</button>
         </div>
-      </div>
-    `).join('');
+      </div>`).join('');
   }
 
-  async function addNote() {
-    const text = document.getElementById('note-input').value.trim();
+  async function addDetailNote() {
+    const text = document.getElementById('detail-note-input').value.trim();
+    const due = document.getElementById('detail-note-due').value;
     if (!text) return;
-    await fetch('/api/notes', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ client_id: currentNotesClientId, note: text }) });
-    document.getElementById('note-input').value = '';
-    await loadNotes();
+    await fetch('/api/notes', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ client_id: currentDetailClient.id, note: text, due_date: due || null }) });
+    document.getElementById('detail-note-input').value = '';
+    document.getElementById('detail-note-due').value = '';
+    await loadDetailNotes();
+    await loadStats();
   }
 
-  async function deleteNote(id) {
+  async function toggleNoteDone(id, done) {
+    await fetch('/api/notes', { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ id, done }) });
+    await loadDetailNotes();
+    await loadStats();
+  }
+
+  async function deleteDetailNote(id) {
     await fetch('/api/notes?id=' + id, { method: 'DELETE', headers: authHeaders() });
-    await loadNotes();
+    await loadDetailNotes();
+    await loadStats();
+  }
+
+  /* ---------- Activity log ---------- */
+  async function loadActivity() {
+    const res = await apiGet('/api/activity');
+    const items = res.ok ? await res.json() : [];
+    const list = document.getElementById('activity-list');
+    if (!items.length) { list.innerHTML = '<div class="empty">Koi activity nahi hai abhi.</div>'; return; }
+    list.innerHTML = items.map(a => `
+      <div class="activity-item">
+        <span class="who">${escapeHtml(a.actor)}</span>
+        <span>${escapeHtml(a.action)}${a.entity_label ? ' — ' + escapeHtml(a.entity_label) : ''}</span>
+        <span class="when">${new Date(a.created_at).toLocaleString('en-IN')}</span>
+      </div>`).join('');
+  }
+
+  /* ---------- Employees ---------- */
+  async function loadEmployees() {
+    const res = await apiGet('/api/employees');
+    if (res.status === 403) { switchView('dashboard'); return; }
+    const emps = res.ok ? await res.json() : [];
+    document.getElementById('employees-body').innerHTML = emps.map(e => `
+      <tr>
+        <td>${escapeHtml(e.username)}</td>
+        <td><span class="badge ${e.role === 'admin' ? 'role-admin' : ''}">${e.role}</span></td>
+        <td>${new Date(e.created_at).toLocaleDateString('en-IN')}</td>
+        <td><button class="delete-btn" onclick="deleteEmployee('${e.id}')">Remove</button></td>
+      </tr>`).join('');
+  }
+
+  async function addEmployee() {
+    const errEl = document.getElementById('employee-error');
+    errEl.textContent = '';
+    const username = document.getElementById('e-username').value.trim();
+    const password = document.getElementById('e-password').value.trim();
+    const role = document.getElementById('e-role').value;
+    if (!username || !password) { errEl.textContent = 'User ID aur password required hain'; return; }
+    try {
+      const res = await fetch('/api/employees', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ username, password, role }) });
+      if (!res.ok) throw new Error((await res.json()).error || 'Add failed');
+      document.getElementById('e-username').value = '';
+      document.getElementById('e-password').value = '';
+      await loadEmployees();
+    } catch (e) { errEl.textContent = e.message; }
+  }
+
+  async function deleteEmployee(id) {
+    if (!confirm('Ye employee remove karna hai?')) return;
+    await fetch('/api/employees?id=' + id, { method: 'DELETE', headers: authHeaders() });
+    await loadEmployees();
   }
 
   function escapeHtml(str) {

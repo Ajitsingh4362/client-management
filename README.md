@@ -45,6 +45,14 @@ Deploy se pehle Vercel dashboard me ye Environment Variables add karein (Project
 | `SUPABASE_SERVICE_ROLE_KEY` | apni Supabase service_role key |
 | `ADMIN_PASSWORD` | apna admin panel password |
 
+## Features
+
+- **Dashboard** — total clients, category-wise breakdown, today's & overdue follow-up reminders
+- **Clients** — add/edit/delete, search (name/phone), filter by category, CSV export
+- **Client detail page** — full info + follow-up notes with optional due dates (mark done/pending)
+- **Activity log** — who did what, when (client/note/employee changes)
+- **Employees** — admin can add/remove staff logins with role (admin/staff); staff can't manage employees
+
 ## Structure
 
 ```

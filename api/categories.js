@@ -1,4 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
+const { requireAuth } = require('./lib/auth');
+const { logActivity } = require('./lib/activity');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -8,13 +10,11 @@ const supabase = createClient(
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,x-admin-token');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const token = req.headers['x-admin-token'];
-  if (!token || token !== process.env.ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const user = requireAuth(req, res);
+  if (!user) return;
 
   try {
     if (req.method === 'GET') {
@@ -28,6 +28,7 @@ module.exports = async (req, res) => {
       if (!name) return res.status(400).json({ error: 'name required hai' });
       const { data, error } = await supabase.from('categories').insert([{ name }]).select();
       if (error) throw error;
+      await logActivity(user.username, 'created category', 'category', name);
       return res.status(201).json(data[0]);
     }
 
