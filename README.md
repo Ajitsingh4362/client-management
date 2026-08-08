@@ -49,6 +49,7 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 
 - **Dashboard** — total clients, category-wise breakdown, today's & overdue follow-up reminders
 - **Clients** — add/edit/delete, search (name/phone), filter by category/status, CSV export
+- **India vs Foreign leads** — every client is tagged `lead_region` (`india` or `foreign`). Separate "Add Client"/"All Indian Leads" and "Add Foreign Client"/"All Foreign Leads" tabs. Foreign phone numbers are sent as-is (no automatic `91` country-code prefix like Indian 10-digit numbers get).
 - **Client pipeline status** — every client is New → In Progress → Completed, or Declined (client declined → 30-day auto-message pause)
 - **Auto WhatsApp message every 2 days** — Vercel Cron hits `/api/auto-notify` daily; it messages every client who isn't Completed/currently-paused and hasn't been messaged in the last 2 days. Message template is editable from the WhatsApp tab (admin only)
 - **Client detail/profile page** — full info + pipeline status controls + Deal & Progress tracking (deal status, payment received, work progress %) + follow-up notes with optional due dates (mark done/pending)
@@ -60,17 +61,18 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 1. Run `supabase/migration_pipeline.sql` once in Supabase Dashboard → SQL Editor (adds `status`, `declined_until`, `last_message_at` columns + an `app_settings` table).
 2. Run `supabase/migration_deal_progress.sql` once too (adds `deal_status`, `payment_status`, `amount_paid`, `progress_percent` columns — used on the client profile page's "Deal & Progress" card).
 3. Run `supabase/migration_categories_reset.sql` if you want to replace the categories list with the default business types (Hospital, Gym, Restaurants, Coaching, School) — this clears the category off any existing clients, since it deletes and re-inserts categories.
-4. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
-5. In Vercel → Project → Settings → Environment Variables, add:
+4. Run `supabase/migration_lead_region.sql` once too (adds the `lead_region` column powering the Indian vs Foreign leads tabs).
+5. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
+6. In Vercel → Project → Settings → Environment Variables, add:
 
 | Key | Value |
 |---|---|
 | `WHATSAPP_NOTIFIER_URL` | URL of your deployed `whatsapp-notifier` service |
 | `CRON_SECRET` | Any random long string — Vercel automatically sends it as `Authorization: Bearer <value>` on cron runs, so `/api/auto-notify` can verify the request is really from Vercel Cron |
 
-6. `vercel.json` schedules the cron at `30 5 * * *` = **11:00 AM IST daily**. This is a general best-practice window for reaching hospital/clinic admin staff in India — after the morning OPD rush settles and before the evening OPD rush picks up (roughly 10:30 AM–12:30 PM). Since Hospital is the default client category, the whole daily run is timed around that. Adjust the schedule in `vercel.json` if most of your clients are a different business type. Note: Vercel checks this endpoint once a day; the endpoint itself only messages clients whose last auto-message was 2+ days ago, so each client still gets messaged roughly every 2 days.
-7. Messages are **not** sent all at once — `/api/auto-notify` hands the whole day's list to the `whatsapp-notifier` service in one call, and that service sends them one at a time, 5 minutes apart (see `BATCH_INTERVAL_MS` in `api/auto-notify.js`), so WhatsApp doesn't see a burst of near-identical messages and flag the number as spam. For 20 due clients, the last message goes out about 95 minutes after the cron fires — that's expected.
-8. Edit the message text anytime from the admin panel's WhatsApp tab — use `{name}` and `{business}` as placeholders.
+7. `vercel.json` schedules the cron at `30 5 * * *` = **11:00 AM IST daily**. This is a general best-practice window for reaching hospital/clinic admin staff in India — after the morning OPD rush settles and before the evening OPD rush picks up (roughly 10:30 AM–12:30 PM). Since Hospital is the default client category, the whole daily run is timed around that. Adjust the schedule in `vercel.json` if most of your clients are a different business type. Note: Vercel checks this endpoint once a day; the endpoint itself only messages clients whose last auto-message was 2+ days ago, so each client still gets messaged roughly every 2 days.
+8. Messages are **not** sent all at once — `/api/auto-notify` hands the whole day's list to the `whatsapp-notifier` service in one call, and that service sends them one at a time, 5 minutes apart (see `BATCH_INTERVAL_MS` in `api/auto-notify.js`), so WhatsApp doesn't see a burst of near-identical messages and flag the number as spam. For 20 due clients, the last message goes out about 95 minutes after the cron fires — that's expected.
+9. Edit the message text anytime from the admin panel's WhatsApp tab — use `{name}` and `{business}` as placeholders.
 
 ## Structure
 

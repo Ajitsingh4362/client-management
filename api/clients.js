@@ -18,10 +18,10 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === 'GET') {
-      const { search, category_id, status, id } = req.query;
+      const { search, category_id, status, id, lead_region } = req.query;
       let query = supabase
         .from('clients')
-        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, payment_status, amount_paid, progress_percent, created_at, updated_at, categories(id, name)')
+        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, payment_status, amount_paid, progress_percent, lead_region, created_at, updated_at, categories(id, name)')
         .order('created_at', { ascending: false });
 
       if (id) {
@@ -36,6 +36,9 @@ module.exports = async (req, res) => {
       if (status) {
         query = query.eq('status', status);
       }
+      if (lead_region) {
+        query = query.eq('lead_region', lead_region);
+      }
 
       const { data, error } = await query;
       if (error) throw error;
@@ -43,16 +46,17 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'POST') {
-      const { name, phone_number, address, category_id } = req.body || {};
+      const { name, phone_number, address, category_id, lead_region } = req.body || {};
       if (!name || !phone_number) {
         return res.status(400).json({ error: 'name and phone_number are required' });
       }
+      const region = lead_region === 'foreign' ? 'foreign' : 'india';
       const { data, error } = await supabase
         .from('clients')
-        .insert([{ name, phone_number, address, category_id: category_id || null }])
+        .insert([{ name, phone_number, address, category_id: category_id || null, lead_region: region }])
         .select();
       if (error) throw error;
-      await logActivity(user.username, 'created client', 'client', name);
+      await logActivity(user.username, `created ${region} client`, 'client', name);
       return res.status(201).json(data[0]);
     }
 
@@ -113,7 +117,7 @@ module.exports = async (req, res) => {
         .from('clients')
         .update(update)
         .eq('id', id)
-        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, payment_status, amount_paid, progress_percent, created_at, updated_at, categories(id, name)');
+        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, payment_status, amount_paid, progress_percent, lead_region, created_at, updated_at, categories(id, name)');
       if (error) throw error;
 
       if (decline) {

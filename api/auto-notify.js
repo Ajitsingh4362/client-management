@@ -47,7 +47,7 @@ module.exports = async (req, res) => {
     const today = new Date().toISOString().slice(0, 10);
     const { data: clients, error } = await supabase
       .from('clients')
-      .select('id, name, phone_number, status, declined_until, last_message_at, categories(name)')
+      .select('id, name, phone_number, status, declined_until, last_message_at, lead_region, categories(name)')
       .neq('status', 'completed')
       .or(`declined_until.is.null,declined_until.lte.${today}`);
     if (error) throw error;
@@ -68,6 +68,7 @@ module.exports = async (req, res) => {
     const messages = due.map(client => ({
       number: client.phone_number,
       message: fillTemplate(template, client),
+      region: client.lead_region,
     }));
 
     const resp = await fetch(`${notifierUrl}/notify-batch`, {

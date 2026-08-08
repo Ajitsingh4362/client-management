@@ -399,6 +399,8 @@
         <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')"><span class="dot"></span> Dashboard</div>
         <div class="nav-item" data-view="add-client" onclick="switchView('add-client')"><span class="dot"></span> Add Client</div>
         <div class="nav-item" data-view="leads" onclick="switchView('leads')"><span class="dot"></span> All Indian Leads</div>
+        <div class="nav-item" data-view="add-foreign-client" onclick="switchView('add-foreign-client')"><span class="dot"></span> Add Foreign Client</div>
+        <div class="nav-item" data-view="foreign-leads" onclick="switchView('foreign-leads')"><span class="dot"></span> All Foreign Leads</div>
         <div class="nav-item" data-view="activity" onclick="switchView('activity')"><span class="dot"></span> Activity Log</div>
         <div class="nav-item" data-view="employees" id="nav-employees" onclick="switchView('employees')" style="display:none;"><span class="dot"></span> Employees</div>
         <div class="nav-item" data-view="whatsapp" id="nav-whatsapp" onclick="switchView('whatsapp')" style="display:none;"><span class="dot"></span> WhatsApp</div>
@@ -479,9 +481,56 @@
           </div>
         </section>
 
+        <!-- ADD FOREIGN CLIENT -->
+        <section class="view" id="view-add-foreign-client">
+          <div class="card">
+            <h2 id="form-title2">Add New Foreign Client</h2>
+            <div class="form-grid">
+              <div><label>Client Name</label><input type="text" id="f2-name" placeholder="e.g. Acme Wellness Clinic" /></div>
+              <div><label>Phone Number (with country code)</label><input type="text" id="f2-phone" placeholder="e.g. 14155552671" /></div>
+              <div><label>Category</label><select id="f2-category"></select></div>
+              <div class="full"><label>Address / Country</label><textarea id="f2-address" rows="2" placeholder="Client address / country"></textarea></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-primary" onclick="saveForeignClient()">Save Client</button>
+              <button class="btn-secondary" id="cancel-edit2" style="display:none;" onclick="resetForeignForm()">Cancel</button>
+            </div>
+            <div class="error" id="form-error2"></div>
+            <div class="wa-success" id="form-success2"></div>
+          </div>
+        </section>
+
+        <!-- ALL FOREIGN LEADS -->
+        <section class="view" id="view-foreign-leads">
+          <div class="card">
+            <h2>All Foreign Leads</h2>
+            <div class="toolbar">
+              <input type="text" id="search-box2" placeholder="Search by name or phone..." oninput="debouncedSearchForeign()" />
+              <select id="filter-category2" onchange="loadForeignClients()"></select>
+              <select id="filter-status2" onchange="loadForeignClients()">
+                <option value="">All statuses</option>
+                <option value="new">New</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="declined">Declined</option>
+              </select>
+              <div class="spacer"></div>
+              <button class="btn-secondary" onclick="exportForeignCsv()">Export CSV</button>
+            </div>
+            <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="foreign-clients-body"></tbody>
+            </table>
+            </div>
+            <div class="empty" id="empty-state2" style="display:none;">No clients found.</div>
+            <div class="error" id="foreign-clients-load-error" style="display:none;"></div>
+          </div>
+        </section>
+
         <!-- CLIENT DETAIL -->
         <section class="view" id="view-client-detail">
-          <div class="back-link" onclick="switchView('leads')">← Back to All Indian Leads</div>
+          <div class="back-link" id="detail-back-link" onclick="goBackFromDetail()">← Back to All Indian Leads</div>
           <div class="card">
             <div class="detail-head">
               <div>
@@ -613,9 +662,12 @@
   let waPollTimer = null;
   let currentUser = JSON.parse(sessionStorage.getItem('admin_user') || 'null');
   let editingId = null;
+  let editingForeignId = null;
   let categories = [];
   let currentDetailClient = null;
+  let detailReturnView = 'leads';
   let searchTimer = null;
+  let searchTimerForeign = null;
 
   if (token && currentUser) showApp();
 
@@ -660,10 +712,11 @@
     document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
     document.getElementById('view-' + view).classList.add('active');
-    const titles = { dashboard: 'Dashboard', 'add-client': 'Add Client', leads: 'All Indian Leads', activity: 'Activity Log', employees: 'Employees', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
+    const titles = { dashboard: 'Dashboard', 'add-client': 'Add Client', leads: 'All Indian Leads', 'add-foreign-client': 'Add Foreign Client', 'foreign-leads': 'All Foreign Leads', activity: 'Activity Log', employees: 'Employees', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
     document.getElementById('page-title').textContent = titles[view] || view;
     if (view === 'dashboard') loadStats();
     if (view === 'leads') loadClients();
+    if (view === 'foreign-leads') loadForeignClients();
     if (view === 'activity') loadActivity();
     if (view === 'employees') loadEmployees();
     if (view === 'whatsapp') { waCheckStatus(); waLoadClientsForSelect(); loadTemplate(); } else { clearInterval(waPollTimer); }
@@ -682,10 +735,11 @@
     const res = await apiGet('/api/categories');
     if (!res.ok) return;
     categories = await res.json();
-    document.getElementById('f-category').innerHTML = '<option value="">— Select category —</option>' +
-      categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-    document.getElementById('filter-category').innerHTML = '<option value="">All categories</option>' +
-      categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    const options = categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    document.getElementById('f-category').innerHTML = '<option value="">— Select category —</option>' + options;
+    document.getElementById('filter-category').innerHTML = '<option value="">All categories</option>' + options;
+    document.getElementById('f2-category').innerHTML = '<option value="">— Select category —</option>' + options;
+    document.getElementById('filter-category2').innerHTML = '<option value="">All categories</option>' + options;
     const hospital = categories.find(c => c.name.toLowerCase() === 'hospital');
     if (hospital && !editingId) document.getElementById('f-category').value = hospital.id;
   }
@@ -733,6 +787,11 @@
     searchTimer = setTimeout(loadClients, 300);
   }
 
+  function debouncedSearchForeign() {
+    clearTimeout(searchTimerForeign);
+    searchTimerForeign = setTimeout(loadForeignClients, 300);
+  }
+
   const STATUS_LABELS = { new: 'New', in_progress: 'In Progress', completed: 'Completed', declined: 'Declined' };
 
   function statusBadge(c) {
@@ -742,17 +801,36 @@
     return `<span class="badge status-${c.status || 'new'}">${label}${extra}</span>`;
   }
 
-  async function loadClients() {
-    const search = document.getElementById('search-box') ? document.getElementById('search-box').value.trim() : '';
-    const categoryId = document.getElementById('filter-category') ? document.getElementById('filter-category').value : '';
-    const statusFilter = document.getElementById('filter-status') ? document.getElementById('filter-status').value : '';
+  function renderClientRows(clients, tbodyId, emptyId) {
+    const body = document.getElementById(tbodyId);
+    const empty = document.getElementById(emptyId);
+    if (!clients.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    body.innerHTML = clients.map(c => `
+      <tr class="clickable" onclick="openClientDetail('${c.id}')">
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.phone_number)}</td>
+        <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
+        <td>${statusBadge(c)}</td>
+        <td class="actions" onclick="event.stopPropagation()">
+          <button class="link-btn" onclick="event.stopPropagation(); openClientDetail('${c.id}')">View Profile</button>
+          <button class="delete-btn" onclick="deleteClient('${c.id}', '${c.lead_region || 'india'}')">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function loadClientsGeneric({ searchId, categoryId, statusId, region, tbodyId, emptyId, errId }) {
+    const search = document.getElementById(searchId) ? document.getElementById(searchId).value.trim() : '';
+    const categoryVal = document.getElementById(categoryId) ? document.getElementById(categoryId).value : '';
+    const statusVal = document.getElementById(statusId) ? document.getElementById(statusId).value : '';
     const params = new URLSearchParams();
     if (search) params.set('search', search);
-    if (categoryId) params.set('category_id', categoryId);
-    if (statusFilter) params.set('status', statusFilter);
-    const body = document.getElementById('clients-body');
-    const empty = document.getElementById('empty-state');
-    const errEl = document.getElementById('clients-load-error');
+    if (categoryVal) params.set('category_id', categoryVal);
+    if (statusVal) params.set('status', statusVal);
+    params.set('lead_region', region);
+    const body = document.getElementById(tbodyId);
+    const empty = document.getElementById(emptyId);
+    const errEl = document.getElementById(errId);
     const res = await apiGet('/api/clients?' + params.toString());
     if (!res.ok) {
       let msg = 'Clients could not be loaded (server error).';
@@ -765,19 +843,21 @@
     }
     errEl.style.display = 'none';
     const clients = await res.json();
-    if (!clients.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
-    empty.style.display = 'none';
-    body.innerHTML = clients.map(c => `
-      <tr class="clickable" onclick="openClientDetail('${c.id}')">
-        <td>${escapeHtml(c.name)}</td>
-        <td>${escapeHtml(c.phone_number)}</td>
-        <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
-        <td>${statusBadge(c)}</td>
-        <td class="actions" onclick="event.stopPropagation()">
-          <button class="link-btn" onclick="event.stopPropagation(); openClientDetail('${c.id}')">View Profile</button>
-          <button class="delete-btn" onclick="deleteClient('${c.id}')">Delete</button>
-        </td>
-      </tr>`).join('');
+    renderClientRows(clients, tbodyId, emptyId);
+  }
+
+  function loadClients() {
+    return loadClientsGeneric({
+      searchId: 'search-box', categoryId: 'filter-category', statusId: 'filter-status',
+      region: 'india', tbodyId: 'clients-body', emptyId: 'empty-state', errId: 'clients-load-error'
+    });
+  }
+
+  function loadForeignClients() {
+    return loadClientsGeneric({
+      searchId: 'search-box2', categoryId: 'filter-category2', statusId: 'filter-status2',
+      region: 'foreign', tbodyId: 'foreign-clients-body', emptyId: 'empty-state2', errId: 'foreign-clients-load-error'
+    });
   }
 
   function editClient(c) {
@@ -789,6 +869,18 @@
     document.getElementById('f-category').value = c.category_id || (c.categories ? c.categories.id : '');
     document.getElementById('cancel-edit').style.display = 'inline-block';
     switchView('add-client');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function editForeignClient(c) {
+    editingForeignId = c.id;
+    document.getElementById('form-title2').textContent = 'Edit Foreign Client';
+    document.getElementById('f2-name').value = c.name;
+    document.getElementById('f2-phone').value = c.phone_number;
+    document.getElementById('f2-address').value = c.address || '';
+    document.getElementById('f2-category').value = c.category_id || (c.categories ? c.categories.id : '');
+    document.getElementById('cancel-edit2').style.display = 'inline-block';
+    switchView('add-foreign-client');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -805,6 +897,18 @@
     document.getElementById('form-success').textContent = '';
   }
 
+  function resetForeignForm() {
+    editingForeignId = null;
+    document.getElementById('form-title2').textContent = 'Add New Foreign Client';
+    document.getElementById('f2-name').value = '';
+    document.getElementById('f2-phone').value = '';
+    document.getElementById('f2-address').value = '';
+    document.getElementById('f2-category').value = '';
+    document.getElementById('cancel-edit2').style.display = 'none';
+    document.getElementById('form-error2').textContent = '';
+    document.getElementById('form-success2').textContent = '';
+  }
+
   async function saveClient() {
     const errEl = document.getElementById('form-error');
     const okEl = document.getElementById('form-success');
@@ -814,7 +918,8 @@
       name: document.getElementById('f-name').value.trim(),
       phone_number: document.getElementById('f-phone').value.trim(),
       address: document.getElementById('f-address').value.trim(),
-      category_id: document.getElementById('f-category').value || null
+      category_id: document.getElementById('f-category').value || null,
+      lead_region: 'india'
     };
     if (!payload.name || !payload.phone_number) { errEl.textContent = 'Name and phone number are required'; return; }
     try {
@@ -836,16 +941,55 @@
     } catch (e) { errEl.textContent = e.message; }
   }
 
-  async function deleteClient(id) {
+  async function saveForeignClient() {
+    const errEl = document.getElementById('form-error2');
+    const okEl = document.getElementById('form-success2');
+    errEl.textContent = ''; okEl.textContent = '';
+    const wasEditing = !!editingForeignId;
+    const payload = {
+      name: document.getElementById('f2-name').value.trim(),
+      phone_number: document.getElementById('f2-phone').value.trim(),
+      address: document.getElementById('f2-address').value.trim(),
+      category_id: document.getElementById('f2-category').value || null,
+      lead_region: 'foreign'
+    };
+    if (!payload.name || !payload.phone_number) { errEl.textContent = 'Name and phone number are required'; return; }
+    try {
+      let res;
+      if (editingForeignId) {
+        res = await fetch('/api/clients', { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ id: editingForeignId, ...payload }) });
+      } else {
+        res = await fetch('/api/clients', { method: 'POST', headers: authHeaders(), body: JSON.stringify(payload) });
+      }
+      if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+      resetForeignForm();
+      await loadStats();
+      if (wasEditing) {
+        switchView('foreign-leads');
+      } else {
+        okEl.textContent = 'Client added — you can add the next one.';
+        setTimeout(() => { okEl.textContent = ''; }, 4000);
+      }
+    } catch (e) { errEl.textContent = e.message; }
+  }
+
+  async function deleteClient(id, region) {
     if (!confirm('Delete this client?')) return;
     await fetch('/api/clients?id=' + id, { method: 'DELETE', headers: authHeaders() });
-    await loadClients();
+    if (region === 'foreign') { await loadForeignClients(); } else { await loadClients(); }
     await loadStats();
   }
 
   function exportCsv() {
     const categoryId = document.getElementById('filter-category').value;
-    const params = new URLSearchParams({ token });
+    const params = new URLSearchParams({ token, lead_region: 'india' });
+    if (categoryId) params.set('category_id', categoryId);
+    window.open('/api/export?' + params.toString(), '_blank');
+  }
+
+  function exportForeignCsv() {
+    const categoryId = document.getElementById('filter-category2').value;
+    const params = new URLSearchParams({ token, lead_region: 'foreign' });
     if (categoryId) params.set('category_id', categoryId);
     window.open('/api/export?' + params.toString(), '_blank');
   }
@@ -864,13 +1008,21 @@
       escapeHtml(client.address || 'No address');
     document.getElementById('detail-note-input').value = '';
     document.getElementById('detail-note-due').value = '';
+    detailReturnView = client.lead_region === 'foreign' ? 'foreign-leads' : 'leads';
+    document.getElementById('detail-back-link').textContent =
+      client.lead_region === 'foreign' ? '← Back to All Foreign Leads' : '← Back to All Indian Leads';
     renderDetailStatus();
     renderDetailDeal();
     switchView('client-detail');
     await loadDetailNotes();
   }
 
-  function editFromDetail() { editClient(currentDetailClient); }
+  function goBackFromDetail() { switchView(detailReturnView); }
+
+  function editFromDetail() {
+    if (currentDetailClient.lead_region === 'foreign') editForeignClient(currentDetailClient);
+    else editClient(currentDetailClient);
+  }
 
   function renderDetailStatus() {
     const c = currentDetailClient;
@@ -1121,7 +1273,7 @@
       if (!res.ok) return;
       const list = await res.json();
       sel.innerHTML = '<option value="">— Select client —</option>' +
-        list.map(c => `<option value="${c.id}" data-phone="${escapeHtml(c.phone_number || '')}">${escapeHtml(c.name)} (${escapeHtml(c.phone_number || 'no phone')})</option>`).join('');
+        list.map(c => `<option value="${c.id}" data-phone="${escapeHtml(c.phone_number || '')}" data-region="${c.lead_region || 'india'}">${escapeHtml(c.name)} (${escapeHtml(c.phone_number || 'no phone')})</option>`).join('');
     } catch (e) { /* ignore */ }
   }
 
@@ -1132,13 +1284,14 @@
     const sel = document.getElementById('wa-client');
     const opt = sel.selectedOptions[0];
     const phone = opt ? opt.dataset.phone : '';
+    const region = opt ? opt.dataset.region : 'india';
     const message = document.getElementById('wa-message').value.trim();
     if (!sel.value) { errEl.textContent = 'Please select a client'; return; }
     if (!phone) { errEl.textContent = 'This client has no saved phone number'; return; }
     if (!message) { errEl.textContent = 'Please enter a message'; return; }
     try {
       const res = await fetch(WHATSAPP_NOTIFIER_URL + '/notify', {
-        method: 'POST', headers: waHeaders(), body: JSON.stringify({ number: phone, message })
+        method: 'POST', headers: waHeaders(), body: JSON.stringify({ number: phone, message, region })
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || 'Send failed');

@@ -207,9 +207,14 @@ async function sendOnce(number, message, isRetry = false) {
   await wait(800 + Math.random() * 700) // small gap before the next queued message
 }
 
-function cleanPhone(phone) {
+// For Indian numbers people often type just the 10-digit local number, so
+// we prepend the 91 country code. Foreign numbers must NOT get this
+// treatment — a 10-digit US/UK/etc number without its own country code
+// would otherwise get a wrong "91" stuck on the front. Callers pass
+// region: 'foreign' for foreign clients so we skip that assumption.
+function cleanPhone(phone, region) {
   let p = (phone || '').replace(/[^\d]/g, '')
-  if (p.length === 10) p = '91' + p
+  if (region !== 'foreign' && p.length === 10) p = '91' + p
   return p
 }
 
@@ -249,12 +254,12 @@ app.post('/logout', requireAdminRole, async (req, res) => {
 // (e.g. from the admin panel's WhatsApp tab), not just admins — matches
 // who can already see client phone numbers in the main app.
 app.post('/notify', requireAdminAuth, notifyLimiter, async (req, res) => {
-  const { number, message } = req.body || {}
+  const { number, message, region } = req.body || {}
   if (!number || !message) {
     return res.status(400).json({ ok: false, error: 'number and message are required' })
   }
   try {
-    await sendWhatsAppMessage(cleanPhone(number), message)
+    await sendWhatsAppMessage(cleanPhone(number, region), message)
     res.json({ ok: true })
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message })
@@ -282,7 +287,7 @@ app.post('/notify-batch', requireAdminRole, async (req, res) => {
       const item = messages[i]
       if (!item || !item.number || !item.message) continue
       try {
-        await sendWhatsAppMessage(cleanPhone(item.number), item.message)
+        await sendWhatsAppMessage(cleanPhone(item.number, item.region), item.message)
         console.log(`Batch send ${i + 1}/${messages.length}: sent to ${item.number}`)
       } catch (err) {
         console.log(`Batch send ${i + 1}/${messages.length}: failed for ${item.number} — ${err.message}`)

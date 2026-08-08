@@ -23,22 +23,24 @@ module.exports = async (req, res) => {
   if (!user) return;
 
   try {
-    const { category_id } = req.query;
+    const { category_id, lead_region } = req.query;
     let query = supabase
       .from('clients')
-      .select('name, phone_number, address, status, created_at, categories(name)')
+      .select('name, phone_number, address, status, lead_region, created_at, categories(name)')
       .order('created_at', { ascending: false });
     if (category_id) query = query.eq('category_id', category_id);
+    if (lead_region) query = query.eq('lead_region', lead_region);
 
     const { data, error } = await query;
     if (error) throw error;
 
-    const header = ['Name', 'Phone', 'Category', 'Status', 'Address', 'Added On'];
+    const header = ['Name', 'Phone', 'Category', 'Status', 'Region', 'Address', 'Added On'];
     const rows = data.map(c => [
       csvEscape(c.name),
       csvEscape(c.phone_number),
       csvEscape(c.categories ? c.categories.name : ''),
       csvEscape(c.status || 'new'),
+      csvEscape(c.lead_region === 'foreign' ? 'Foreign' : 'India'),
       csvEscape(c.address),
       csvEscape(new Date(c.created_at).toLocaleDateString('en-IN'))
     ].join(','));
