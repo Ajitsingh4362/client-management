@@ -444,6 +444,7 @@
         <div class="nav-item" data-view="add-foreign-client" onclick="switchView('add-foreign-client')"><span class="dot"></span> Add Foreign Client</div>
         <div class="nav-item" data-view="foreign-leads" onclick="switchView('foreign-leads')"><span class="dot"></span> All Foreign Leads</div>
         <div class="nav-item" data-view="activity" onclick="switchView('activity')"><span class="dot"></span> Activity Log</div>
+        <div class="nav-item" data-view="notes" onclick="switchView('notes')"><span class="dot"></span> Notes</div>
         <div class="nav-item" data-view="employees" id="nav-employees" onclick="switchView('employees')" style="display:none;"><span class="dot"></span> Employees</div>
         <div class="nav-item" data-view="whatsapp" id="nav-whatsapp" onclick="switchView('whatsapp')" style="display:none;"><span class="dot"></span> WhatsApp</div>
       </nav>
@@ -701,6 +702,21 @@
           </div>
         </section>
 
+        <!-- NOTES (general/team notepad, not tied to a client) -->
+        <section class="view" id="view-notes">
+          <div class="card">
+            <h2>Team Notes</h2>
+            <div class="note-add-row">
+              <textarea id="team-note-input" rows="2" placeholder="Write a note for the team..."></textarea>
+              <button class="btn-primary" onclick="addTeamNote()">Add</button>
+            </div>
+            <div class="error" id="team-note-error"></div>
+          </div>
+          <div class="card">
+            <div id="team-notes-list"></div>
+          </div>
+        </section>
+
         <!-- EMPLOYEES (admin only) -->
         <section class="view" id="view-employees">
           <div class="card">
@@ -843,12 +859,13 @@
     document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
     document.getElementById('view-' + view).classList.add('active');
-    const titles = { dashboard: 'Dashboard', 'add-client': 'Add Indian Client', leads: 'All Indian Leads', 'add-foreign-client': 'Add Foreign Client', 'foreign-leads': 'All Foreign Leads', activity: 'Activity Log', employees: 'Employees', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
+    const titles = { dashboard: 'Dashboard', 'add-client': 'Add Indian Client', leads: 'All Indian Leads', 'add-foreign-client': 'Add Foreign Client', 'foreign-leads': 'All Foreign Leads', activity: 'Activity Log', notes: 'Notes', employees: 'Employees', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
     document.getElementById('page-title').textContent = titles[view] || view;
     if (view === 'dashboard') loadStats();
     if (view === 'leads') loadClients();
     if (view === 'foreign-leads') loadForeignClients();
     if (view === 'activity') loadActivity();
+    if (view === 'notes') loadTeamNotes();
     if (view === 'employees') loadEmployees();
     if (view === 'whatsapp') { waCheckStatus(); waLoadClientsForSelect(); loadTemplate(); } else { clearInterval(waPollTimer); }
   }
@@ -1384,6 +1401,44 @@
         <span>${escapeHtml(a.action)}${a.entity_label ? ' — ' + escapeHtml(a.entity_label) : ''}</span>
         <span class="when">${new Date(a.created_at).toLocaleString('en-IN')}</span>
       </div>`).join('');
+  }
+
+  /* ---------- Team Notes (general notepad) ---------- */
+  async function loadTeamNotes() {
+    const res = await apiGet('/api/team-notes');
+    const notes = res.ok ? await res.json() : [];
+    const list = document.getElementById('team-notes-list');
+    if (!notes.length) { list.innerHTML = '<div class="empty">No notes yet.</div>'; return; }
+    list.innerHTML = notes.map(n => `
+      <div class="note-item">
+        <div class="txt">${escapeHtml(n.note)}</div>
+        <div class="meta">
+          <small>${escapeHtml(n.author)} · ${new Date(n.created_at).toLocaleString('en-IN')}</small>
+          <span style="flex:1"></span>
+          <button onclick="deleteTeamNote('${n.id}')">Delete</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function addTeamNote() {
+    const errEl = document.getElementById('team-note-error');
+    errEl.textContent = '';
+    const input = document.getElementById('team-note-input');
+    const text = input.value.trim();
+    if (!text) return;
+    try {
+      const res = await fetch('/api/team-notes', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ note: text }) });
+      if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+      input.value = '';
+      await loadTeamNotes();
+    } catch (e) { errEl.textContent = e.message; }
+  }
+
+  async function deleteTeamNote(id) {
+    if (!confirm('Delete this note?')) return;
+    const res = await fetch('/api/team-notes?id=' + id, { method: 'DELETE', headers: authHeaders() });
+    if (!res.ok) { alert((await res.json()).error || 'Delete failed'); return; }
+    await loadTeamNotes();
   }
 
   /* ---------- Employees ---------- */

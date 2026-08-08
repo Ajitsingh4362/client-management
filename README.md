@@ -55,6 +55,7 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 - **Client detail/profile page** — full info + pipeline status controls + Deal & Progress tracking (deal status, payment received, work progress %, deal amount, deadline) + downloadable Quotation/Invoice PDFs once a deal is Confirmed + follow-up notes with optional due dates (mark done/pending)
 - **Activity log** — who did what, when (client/note/employee changes, auto-message runs)
 - **Employees** — admin can add/remove staff logins with role (admin/staff); staff can't manage employees
+- **Notes** — a general team notepad, not tied to any client (see everyone's shared notes, delete your own; admins can delete any)
 
 ## Setting up the 2-day auto-message
 
@@ -64,8 +65,9 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 4. Run `supabase/migration_lead_region.sql` once too (adds the `lead_region` column powering the Indian vs Foreign leads tabs).
 5. Run `supabase/migration_deal_amount_deadline.sql` once too (adds `deal_amount` and `deal_deadline` — shown on the client profile once a deal is marked Confirmed, and rolled up into the dashboard's "Total Deal Value" and "Upcoming Deal Deadlines" cards).
 6. Run `supabase/migration_set_templates.sql` if you want to set the Indian and Foreign auto-message templates directly via SQL instead of typing them into the WhatsApp tab. Indian and foreign clients now use **separate** templates (`auto_message_template` for India, `auto_message_template_foreign` for foreign — write this one in English) — both editable from the WhatsApp tab.
-7. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
-8. In Vercel → Project → Settings → Environment Variables, add:
+7. Run `supabase/migration_team_notes.sql` once too (creates the `team_notes` table used by the general Notes tab).
+8. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
+9. In Vercel → Project → Settings → Environment Variables, add:
 
 | Key | Value |
 |---|---|
