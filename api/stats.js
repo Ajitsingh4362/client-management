@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
 
     const [catRes, clientsRes, followupRes] = await Promise.all([
       supabase.from('categories').select('id, name'),
-      supabase.from('clients').select('category_id'),
+      supabase.from('clients').select('category_id, status, deal_status, payment_status, amount_paid, lead_region'),
       supabase
         .from('client_notes')
         .select('*', { count: 'exact', head: true })
@@ -43,11 +43,43 @@ module.exports = async (req, res) => {
     }));
     const uncategorized = clients.filter(c => !c.category_id).length;
 
+    const count = (arr, pred) => arr.filter(pred).length;
+
+    const statusBreakdown = {
+      new: count(clients, c => (c.status || 'new') === 'new'),
+      in_progress: count(clients, c => c.status === 'in_progress'),
+      completed: count(clients, c => c.status === 'completed'),
+      declined: count(clients, c => c.status === 'declined'),
+    };
+
+    const dealBreakdown = {
+      pending: count(clients, c => (c.deal_status || 'pending') === 'pending'),
+      confirmed: count(clients, c => c.deal_status === 'confirmed'),
+    };
+
+    const paymentBreakdown = {
+      unpaid: count(clients, c => (c.payment_status || 'unpaid') === 'unpaid'),
+      partial: count(clients, c => c.payment_status === 'partial'),
+      paid: count(clients, c => c.payment_status === 'paid'),
+    };
+
+    const totalCollected = clients.reduce((sum, c) => sum + (Number(c.amount_paid) || 0), 0);
+
+    const regionBreakdown = {
+      india: count(clients, c => (c.lead_region || 'india') === 'india'),
+      foreign: count(clients, c => c.lead_region === 'foreign'),
+    };
+
     return res.status(200).json({
       totalClients: clients.length,
       categoryBreakdown,
       uncategorized,
-      dueFollowUps: followupRes.count || 0
+      dueFollowUps: followupRes.count || 0,
+      statusBreakdown,
+      dealBreakdown,
+      paymentBreakdown,
+      totalCollected,
+      regionBreakdown,
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });

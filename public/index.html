@@ -147,6 +147,17 @@
   .stat-card.c3 { border-top-color: var(--accent-3); }
   .stat-card.warn .n { color: var(--warn); }
 
+  .mini-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+  .mini-stat { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; border-top: 3px solid var(--border); }
+  .mini-stat .n { font-size: 20px; font-weight: 700; }
+  .mini-stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-top: 2px; }
+  .mini-stat.c-new { border-top-color: var(--accent-1); }
+  .mini-stat.c-progress { border-top-color: var(--warn); }
+  .mini-stat.c-completed { border-top-color: #1e8f5a; }
+  .mini-stat.c-declined { border-top-color: var(--danger); }
+  .total-collected { margin-top: 14px; font-size: 14px; color: var(--muted); }
+  .total-collected b { color: var(--text); font-size: 18px; }
+
   .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
   .card h2 { margin-top: 0; font-size: 15px; }
   .card h2.row { display: flex; justify-content: space-between; align-items: center; }
@@ -283,6 +294,7 @@
     .note-add-row textarea, .note-add-row input[type=date] { flex: 1; width: 100%; }
 
     .stat-cards { grid-template-columns: 1fr 1fr; }
+    .mini-stats { grid-template-columns: 1fr 1fr; }
   }
 
   /* Logout needs to live somewhere on mobile since the sidebar footer is hidden */
@@ -422,8 +434,39 @@
         <section class="view active" id="view-dashboard">
           <div class="stat-cards" id="stat-cards">
             <div class="stat-card"><div class="n" id="stat-total">—</div><div class="l">Total Clients</div></div>
+            <div class="stat-card c2"><div class="n" id="stat-india">—</div><div class="l">Indian Leads</div></div>
+            <div class="stat-card c3"><div class="n" id="stat-foreign">—</div><div class="l">Foreign Leads</div></div>
             <div class="stat-card warn"><div class="n" id="stat-followups">—</div><div class="l">Due Follow-ups</div></div>
           </div>
+
+          <div class="card">
+            <h2>Client Pipeline</h2>
+            <div class="mini-stats">
+              <div class="mini-stat c-new"><div class="n" id="stat-status-new">—</div><div class="l">New</div></div>
+              <div class="mini-stat c-progress"><div class="n" id="stat-status-progress">—</div><div class="l">In Progress</div></div>
+              <div class="mini-stat c-completed"><div class="n" id="stat-status-completed">—</div><div class="l">Completed</div></div>
+              <div class="mini-stat c-declined"><div class="n" id="stat-status-declined">—</div><div class="l">Declined</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Deal Status</h2>
+            <div class="mini-stats">
+              <div class="mini-stat c-progress"><div class="n" id="stat-deal-pending">—</div><div class="l">Pending</div></div>
+              <div class="mini-stat c-completed"><div class="n" id="stat-deal-confirmed">—</div><div class="l">Confirmed</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Payment Status</h2>
+            <div class="mini-stats">
+              <div class="mini-stat c-declined"><div class="n" id="stat-pay-unpaid">—</div><div class="l">Not Paid</div></div>
+              <div class="mini-stat c-progress"><div class="n" id="stat-pay-partial">—</div><div class="l">Advance Received</div></div>
+              <div class="mini-stat c-completed"><div class="n" id="stat-pay-paid">—</div><div class="l">Fully Paid</div></div>
+            </div>
+            <div class="total-collected">Total Collected: <b id="stat-total-collected">₹0</b></div>
+          </div>
+
           <div class="card">
             <h2>Today's &amp; Overdue Follow-ups</h2>
             <div id="followups-list"></div>
@@ -746,11 +789,27 @@
 
   /* ---------- Dashboard ---------- */
   async function loadStats() {
-    const res = await apiGet('/api/stats');
+    const [res, fRes] = await Promise.all([apiGet('/api/stats'), apiGet('/api/notes?upcoming=1')]);
     if (!res.ok) return;
     const stats = await res.json();
     document.getElementById('stat-total').textContent = stats.totalClients;
     document.getElementById('stat-followups').textContent = stats.dueFollowUps;
+    document.getElementById('stat-india').textContent = stats.regionBreakdown.india;
+    document.getElementById('stat-foreign').textContent = stats.regionBreakdown.foreign;
+
+    document.getElementById('stat-status-new').textContent = stats.statusBreakdown.new;
+    document.getElementById('stat-status-progress').textContent = stats.statusBreakdown.in_progress;
+    document.getElementById('stat-status-completed').textContent = stats.statusBreakdown.completed;
+    document.getElementById('stat-status-declined').textContent = stats.statusBreakdown.declined;
+
+    document.getElementById('stat-deal-pending').textContent = stats.dealBreakdown.pending;
+    document.getElementById('stat-deal-confirmed').textContent = stats.dealBreakdown.confirmed;
+
+    document.getElementById('stat-pay-unpaid').textContent = stats.paymentBreakdown.unpaid;
+    document.getElementById('stat-pay-partial').textContent = stats.paymentBreakdown.partial;
+    document.getElementById('stat-pay-paid').textContent = stats.paymentBreakdown.paid;
+    document.getElementById('stat-total-collected').textContent =
+      '₹' + Number(stats.totalCollected || 0).toLocaleString('en-IN');
 
     const max = Math.max(1, ...stats.categoryBreakdown.map(c => c.count), stats.uncategorized);
     const colors = ['var(--accent-1)', 'var(--accent-2)', 'var(--accent-3)', 'var(--accent-4)'];
@@ -767,7 +826,6 @@
     }
     document.getElementById('category-breakdown').innerHTML = rows || '<div class="empty">No data yet.</div>';
 
-    const fRes = await apiGet('/api/notes?upcoming=1');
     const followups = fRes.ok ? await fRes.json() : [];
     const fList = document.getElementById('followups-list');
     if (!followups.length) {
