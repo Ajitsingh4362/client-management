@@ -51,7 +51,7 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 - **Clients** — add/edit/delete, search (name/phone), filter by category/status, CSV export
 - **India vs Foreign leads** — every client is tagged `lead_region` (`india` or `foreign`). Separate "Add Client"/"All Indian Leads" and "Add Foreign Client"/"All Foreign Leads" tabs. Foreign phone numbers are sent as-is (no automatic `91` country-code prefix like Indian 10-digit numbers get).
 - **Client pipeline status** — every client is New → In Progress → Completed, or Declined (client declined → 30-day auto-message pause)
-- **Auto WhatsApp message every 2 days** — Vercel Cron hits `/api/auto-notify` daily; it messages every client who isn't Completed/currently-paused and hasn't been messaged in the last 2 days. Message template is editable from the WhatsApp tab (admin only)
+- **Auto WhatsApp message every 2 days** — Vercel Cron hits `/api/auto-notify` daily; it messages every client who isn't Completed, isn't currently-paused, and whose deal isn't already Confirmed, and who hasn't been messaged in the last 2 days. Message template is editable from the WhatsApp tab (admin only)
 - **Client detail/profile page** — full info + pipeline status controls + Deal & Progress tracking (deal status, payment received, work progress %, deal amount, deadline) + downloadable Quotation/Invoice PDFs once a deal is Confirmed + follow-up notes with optional due dates (mark done/pending)
 - **Activity log** — who did what, when (client/note/employee changes, auto-message runs)
 - **Employees** — admin can add/remove staff logins with role (admin/staff); staff can't manage employees

@@ -1,10 +1,11 @@
 // Triggered automatically by Vercel Cron (see vercel.json) once a day.
-// For every client who is NOT completed/declined-and-still-paused, and who
-// hasn't been auto-messaged in the last 2 days, this hands the whole list
-// off to the standalone whatsapp-notifier service in one go, which then
-// sends them one at a time with a gap between each (see BATCH_INTERVAL_MS)
-// instead of firing them all at once — a burst of near-identical messages
-// is much more likely to get an account flagged/blocked by WhatsApp.
+// For every client who is NOT completed, NOT deal-confirmed, and NOT
+// declined-and-still-paused, and who hasn't been auto-messaged in the last
+// 2 days, this hands the whole list off to the standalone whatsapp-notifier
+// service in one go, which then sends them one at a time with a gap
+// between each (see BATCH_INTERVAL_MS) instead of firing them all at once —
+// a burst of near-identical messages is much more likely to get an account
+// flagged/blocked by WhatsApp.
 //
 // Protected by CRON_SECRET: set a CRON_SECRET env var in Vercel and Vercel
 // will automatically send `Authorization: Bearer <CRON_SECRET>` on cron
@@ -47,8 +48,9 @@ module.exports = async (req, res) => {
     const today = new Date().toISOString().slice(0, 10);
     const { data: clients, error } = await supabase
       .from('clients')
-      .select('id, name, phone_number, status, declined_until, last_message_at, lead_region, categories(name)')
+      .select('id, name, phone_number, status, deal_status, declined_until, last_message_at, lead_region, categories(name)')
       .neq('status', 'completed')
+      .neq('deal_status', 'confirmed')
       .or(`declined_until.is.null,declined_until.lte.${today}`);
     if (error) throw error;
 
