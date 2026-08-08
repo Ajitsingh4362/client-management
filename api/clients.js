@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
       const { search, category_id, status } = req.query;
       let query = supabase
         .from('clients')
-        .select('id, name, phone_number, address, status, declined_until, last_message_at, created_at, updated_at, categories(id, name)')
+        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, payment_status, amount_paid, progress_percent, created_at, updated_at, categories(id, name)')
         .order('created_at', { ascending: false });
 
       if (search) {
@@ -54,7 +54,10 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'PUT') {
-      const { id, name, phone_number, address, category_id, status, decline } = req.body || {};
+      const {
+        id, name, phone_number, address, category_id, status, decline,
+        deal_status, payment_status, amount_paid, progress_percent
+      } = req.body || {};
       if (!id) return res.status(400).json({ error: 'id required hai' });
 
       const update = {};
@@ -77,13 +80,47 @@ module.exports = async (req, res) => {
         if (status !== 'declined') update.declined_until = null; // pause hata do jab status manually change ho
       }
 
-      const { data, error } = await supabase.from('clients').update(update).eq('id', id).select();
+      if (deal_status !== undefined) {
+        if (!['pending', 'confirmed'].includes(deal_status)) {
+          return res.status(400).json({ error: 'Invalid deal_status' });
+        }
+        update.deal_status = deal_status;
+      }
+
+      if (payment_status !== undefined) {
+        if (!['unpaid', 'partial', 'paid'].includes(payment_status)) {
+          return res.status(400).json({ error: 'Invalid payment_status' });
+        }
+        update.payment_status = payment_status;
+      }
+
+      if (amount_paid !== undefined) {
+        const amt = Number(amount_paid);
+        if (isNaN(amt) || amt < 0) return res.status(400).json({ error: 'amount_paid valid number hona chahiye' });
+        update.amount_paid = amt;
+      }
+
+      if (progress_percent !== undefined) {
+        const p = Number(progress_percent);
+        if (isNaN(p) || p < 0 || p > 100) return res.status(400).json({ error: 'progress_percent 0-100 ke beech hona chahiye' });
+        update.progress_percent = p;
+      }
+
+      const { data, error } = await supabase
+        .from('clients')
+        .update(update)
+        .eq('id', id)
+        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, payment_status, amount_paid, progress_percent, created_at, updated_at, categories(id, name)');
       if (error) throw error;
 
       if (decline) {
         await logActivity(user.username, 'client declined (30 din pause)', 'client', data[0] ? data[0].name : id);
       } else if (status !== undefined) {
         await logActivity(user.username, `status → ${status}`, 'client', data[0] ? data[0].name : id);
+      } else if (deal_status !== undefined) {
+        await logActivity(user.username, `deal → ${deal_status}`, 'client', data[0] ? data[0].name : id);
+      } else if (payment_status !== undefined || amount_paid !== undefined || progress_percent !== undefined) {
+        await logActivity(user.username, 'updated deal/progress', 'client', data[0] ? data[0].name : id);
       } else {
         await logActivity(user.username, 'updated client', 'client', name);
       }

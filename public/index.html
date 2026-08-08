@@ -204,6 +204,14 @@
   .status-btn.decline:hover { background: #fdf1ef; }
   .decline-note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
 
+  .deal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .deal-grid label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+  .deal-grid select, .deal-grid input[type=number] { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+  .deal-grid input[type=range] { width: 100%; }
+  .deal-grid .full { grid-column: 1 / -1; }
+  .status-btn[data-s="confirmed"].active { background: #1e8f5a; }
+  .status-btn[data-s="pending"].active { background: var(--warn); }
+
   .table-wrap { overflow-x: auto; }
 
   .back-link { display: inline-block; margin-bottom: 14px; color: var(--muted); cursor: pointer; font-size: 13px; }
@@ -261,6 +269,7 @@
     main { padding: 16px; }
 
     .form-grid { grid-template-columns: 1fr; }
+    .deal-grid { grid-template-columns: 1fr; }
     .toolbar { flex-direction: column; align-items: stretch; }
     .toolbar input[type=text] { min-width: 0; }
 
@@ -479,6 +488,37 @@
             <div class="status-actions" id="detail-status-actions"></div>
             <div class="decline-note" id="detail-decline-note"></div>
           </div>
+
+          <div class="card">
+            <h2>Deal &amp; Progress</h2>
+            <div class="deal-grid">
+              <div>
+                <label>Deal Status</label>
+                <div class="status-actions" id="detail-deal-actions"></div>
+              </div>
+              <div>
+                <label>Payment Status</label>
+                <select id="detail-payment-status">
+                  <option value="unpaid">Paisa nahi mila</option>
+                  <option value="partial">Advance mila</option>
+                  <option value="paid">Pura paisa mil gaya</option>
+                </select>
+              </div>
+              <div>
+                <label>Amount Received (₹)</label>
+                <input type="number" id="detail-amount-paid" min="0" placeholder="0" />
+              </div>
+              <div class="full">
+                <label>Work Progress — <span id="detail-progress-val">0%</span></label>
+                <input type="range" id="detail-progress" min="0" max="100" step="5"
+                  oninput="document.getElementById('detail-progress-val').textContent = this.value + '%'" />
+              </div>
+            </div>
+            <div class="form-actions"><button class="btn-primary" onclick="saveDealProgress()">Save</button></div>
+            <div class="error" id="deal-error"></div>
+            <div class="wa-success" id="deal-success"></div>
+          </div>
+
           <div class="card">
             <h2>Follow-up Notes</h2>
             <div id="detail-notes-list"></div>
@@ -728,7 +768,7 @@
         <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
         <td>${statusBadge(c)}</td>
         <td class="actions" onclick="event.stopPropagation()">
-          <button class="link-btn" onclick='editClient(${JSON.stringify(c)})'>Edit</button>
+          <button class="link-btn" onclick="event.stopPropagation(); openClientDetail('${c.id}')">View Profile</button>
           <button class="delete-btn" onclick="deleteClient('${c.id}')">Delete</button>
         </td>
       </tr>`).join('');
@@ -810,6 +850,7 @@
     document.getElementById('detail-note-input').value = '';
     document.getElementById('detail-note-due').value = '';
     renderDetailStatus();
+    renderDetailDeal();
     switchView('client-detail');
     await loadDetailNotes();
   }
@@ -849,6 +890,49 @@
       renderDetailStatus();
       await loadClients();
     }
+  }
+
+  /* ---------- Deal & Progress ---------- */
+  function renderDetailDeal() {
+    const c = currentDetailClient;
+    const dealStatus = c.deal_status || 'pending';
+    const btn = (s, label) => `<button class="status-btn ${dealStatus === s ? 'active' : ''}" data-s="${s}" onclick="setDealStatus('${s}')">${label}</button>`;
+    document.getElementById('detail-deal-actions').innerHTML = btn('pending', 'Deal Pending') + btn('confirmed', 'Deal Confirmed');
+
+    document.getElementById('detail-payment-status').value = c.payment_status || 'unpaid';
+    document.getElementById('detail-amount-paid').value = c.amount_paid || '';
+    const progress = c.progress_percent || 0;
+    document.getElementById('detail-progress').value = progress;
+    document.getElementById('detail-progress-val').textContent = progress + '%';
+    document.getElementById('deal-error').textContent = '';
+    document.getElementById('deal-success').textContent = '';
+  }
+
+  async function setDealStatus(dealStatus) {
+    const res = await fetch('/api/clients', { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ id: currentDetailClient.id, deal_status: dealStatus }) });
+    if (res.ok) {
+      currentDetailClient = await res.json();
+      renderDetailDeal();
+    }
+  }
+
+  async function saveDealProgress() {
+    const errEl = document.getElementById('deal-error');
+    const okEl = document.getElementById('deal-success');
+    errEl.textContent = ''; okEl.textContent = '';
+    const payload = {
+      id: currentDetailClient.id,
+      payment_status: document.getElementById('detail-payment-status').value,
+      amount_paid: Number(document.getElementById('detail-amount-paid').value) || 0,
+      progress_percent: Number(document.getElementById('detail-progress').value) || 0
+    };
+    try {
+      const res = await fetch('/api/clients', { method: 'PUT', headers: authHeaders(), body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+      currentDetailClient = await res.json();
+      renderDetailDeal();
+      okEl.textContent = 'Save ho gaya.';
+    } catch (e) { errEl.textContent = e.message; }
   }
 
   async function loadDetailNotes() {
