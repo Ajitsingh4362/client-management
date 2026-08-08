@@ -62,8 +62,9 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 2. Run `supabase/migration_deal_progress.sql` once too (adds `deal_status`, `payment_status`, `amount_paid`, `progress_percent` columns — used on the client profile page's "Deal & Progress" card).
 3. Run `supabase/migration_categories_reset.sql` if you want to replace the categories list with the default business types (Hospital, Gym, Restaurants, Coaching, School) — this clears the category off any existing clients, since it deletes and re-inserts categories.
 4. Run `supabase/migration_lead_region.sql` once too (adds the `lead_region` column powering the Indian vs Foreign leads tabs).
-5. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
-6. In Vercel → Project → Settings → Environment Variables, add:
+5. Run `supabase/migration_deal_amount_deadline.sql` once too (adds `deal_amount` and `deal_deadline` — shown on the client profile once a deal is marked Confirmed, and rolled up into the dashboard's "Total Deal Value" and "Upcoming Deal Deadlines" cards).
+6. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
+7. In Vercel → Project → Settings → Environment Variables, add:
 
 | Key | Value |
 |---|---|

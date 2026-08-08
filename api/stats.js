@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
 
     const [catRes, clientsRes, followupRes] = await Promise.all([
       supabase.from('categories').select('id, name'),
-      supabase.from('clients').select('category_id, status, deal_status, payment_status, amount_paid, lead_region'),
+      supabase.from('clients').select('id, name, category_id, status, deal_status, deal_amount, deal_deadline, payment_status, amount_paid, lead_region'),
       supabase
         .from('client_notes')
         .select('*', { count: 'exact', head: true })
@@ -64,6 +64,15 @@ module.exports = async (req, res) => {
     };
 
     const totalCollected = clients.reduce((sum, c) => sum + (Number(c.amount_paid) || 0), 0);
+    const totalDealValue = clients
+      .filter(c => c.deal_status === 'confirmed')
+      .reduce((sum, c) => sum + (Number(c.deal_amount) || 0), 0);
+
+    const upcomingDeadlines = clients
+      .filter(c => c.deal_status === 'confirmed' && c.deal_deadline)
+      .sort((a, b) => a.deal_deadline < b.deal_deadline ? -1 : 1)
+      .slice(0, 5)
+      .map(c => ({ id: c.id, name: c.name, deal_deadline: c.deal_deadline, deal_amount: c.deal_amount, overdue: c.deal_deadline < today }));
 
     const regionBreakdown = {
       india: count(clients, c => (c.lead_region || 'india') === 'india'),
@@ -79,6 +88,8 @@ module.exports = async (req, res) => {
       dealBreakdown,
       paymentBreakdown,
       totalCollected,
+      totalDealValue,
+      upcomingDeadlines,
       regionBreakdown,
     });
   } catch (err) {

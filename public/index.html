@@ -200,6 +200,7 @@
   .followup-item .txt { flex: 1; cursor: pointer; }
   .followup-item .txt b { color: var(--primary); }
   .followup-item .due { font-size: 12px; color: var(--danger); }
+  .followup-item .due.upcoming { color: var(--warn); }
 
   .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
   .toolbar input[type=text], .toolbar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
@@ -493,6 +494,10 @@
               <div class="donut-wrap" id="deal-donut"></div>
               <div class="legend-list" id="deal-legend"></div>
             </div>
+            <div class="total-collected">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Total Deal Value: <b id="stat-total-deal-value">₹0</b>
+            </div>
           </div>
 
           <div class="card">
@@ -505,6 +510,11 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 8h5.5a2.5 2.5 0 0 1 0 5H8m0-2.5h6M8 8v9l4-3"/></svg>
               Total Collected: <b id="stat-total-collected">₹0</b>
             </div>
+          </div>
+
+          <div class="card">
+            <h2>Upcoming Deal Deadlines</h2>
+            <div id="deadlines-list"></div>
           </div>
 
           <div class="card">
@@ -644,6 +654,14 @@
               <div>
                 <label>Amount Received (₹)</label>
                 <input type="number" id="detail-amount-paid" min="0" placeholder="0" />
+              </div>
+              <div class="deal-confirmed-only" id="deal-amount-field" style="display:none;">
+                <label>Deal Amount (₹)</label>
+                <input type="number" id="detail-deal-amount" min="0" placeholder="Total deal value" />
+              </div>
+              <div class="deal-confirmed-only" id="deal-deadline-field" style="display:none;">
+                <label>Deadline</label>
+                <input type="date" id="detail-deal-deadline" />
               </div>
               <div class="full">
                 <label>Work Progress — <span id="detail-progress-val">0%</span></label>
@@ -902,6 +920,19 @@
 
     document.getElementById('stat-total-collected').textContent =
       '₹' + Number(stats.totalCollected || 0).toLocaleString('en-IN');
+    document.getElementById('stat-total-deal-value').textContent =
+      '₹' + Number(stats.totalDealValue || 0).toLocaleString('en-IN');
+
+    const dList = document.getElementById('deadlines-list');
+    if (!stats.upcomingDeadlines || !stats.upcomingDeadlines.length) {
+      dList.innerHTML = '<div class="empty">No confirmed deals with a deadline yet.</div>';
+    } else {
+      dList.innerHTML = stats.upcomingDeadlines.map(d => `
+        <div class="followup-item">
+          <div class="txt" onclick="openClientDetail('${d.id}')"><b>${escapeHtml(d.name)}</b> — ₹${Number(d.deal_amount || 0).toLocaleString('en-IN')}</div>
+          <div class="due ${d.overdue ? '' : 'upcoming'}">${d.deal_deadline}${d.overdue ? ' (overdue)' : ''}</div>
+        </div>`).join('');
+    }
 
     const max = Math.max(1, ...stats.categoryBreakdown.map(c => c.count), stats.uncategorized);
     const colors = ['var(--accent-1)', 'var(--accent-2)', 'var(--accent-3)', 'var(--accent-4)'];
@@ -1218,6 +1249,11 @@
 
     document.getElementById('detail-payment-status').value = c.payment_status || 'unpaid';
     document.getElementById('detail-amount-paid').value = c.amount_paid || '';
+    document.getElementById('detail-deal-amount').value = c.deal_amount || '';
+    document.getElementById('detail-deal-deadline').value = c.deal_deadline || '';
+    const showConfirmedFields = dealStatus === 'confirmed';
+    document.getElementById('deal-amount-field').style.display = showConfirmedFields ? '' : 'none';
+    document.getElementById('deal-deadline-field').style.display = showConfirmedFields ? '' : 'none';
     const progress = c.progress_percent || 0;
     document.getElementById('detail-progress').value = progress;
     document.getElementById('detail-progress-val').textContent = progress + '%';
@@ -1230,6 +1266,7 @@
     if (res.ok) {
       currentDetailClient = await res.json();
       renderDetailDeal();
+      await loadStats();
     }
   }
 
@@ -1237,18 +1274,24 @@
     const errEl = document.getElementById('deal-error');
     const okEl = document.getElementById('deal-success');
     errEl.textContent = ''; okEl.textContent = '';
+    const isConfirmed = (currentDetailClient.deal_status || 'pending') === 'confirmed';
     const payload = {
       id: currentDetailClient.id,
       payment_status: document.getElementById('detail-payment-status').value,
       amount_paid: Number(document.getElementById('detail-amount-paid').value) || 0,
       progress_percent: Number(document.getElementById('detail-progress').value) || 0
     };
+    if (isConfirmed) {
+      payload.deal_amount = Number(document.getElementById('detail-deal-amount').value) || 0;
+      payload.deal_deadline = document.getElementById('detail-deal-deadline').value || null;
+    }
     try {
       const res = await fetch('/api/clients', { method: 'PUT', headers: authHeaders(), body: JSON.stringify(payload) });
       if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
       currentDetailClient = await res.json();
       renderDetailDeal();
       okEl.textContent = 'Saved.';
+      await loadStats();
     } catch (e) { errEl.textContent = e.message; }
   }
 
