@@ -461,6 +461,7 @@
             </table>
             </div>
             <div class="empty" id="empty-state" style="display:none;">No clients found.</div>
+            <div class="error" id="clients-load-error" style="display:none;"></div>
           </div>
         </section>
 
@@ -703,11 +704,21 @@
     if (search) params.set('search', search);
     if (categoryId) params.set('category_id', categoryId);
     if (statusFilter) params.set('status', statusFilter);
-    const res = await apiGet('/api/clients?' + params.toString());
-    if (!res.ok) return;
-    const clients = await res.json();
     const body = document.getElementById('clients-body');
     const empty = document.getElementById('empty-state');
+    const errEl = document.getElementById('clients-load-error');
+    const res = await apiGet('/api/clients?' + params.toString());
+    if (!res.ok) {
+      let msg = 'Clients load nahi ho paye (server error).';
+      try { const j = await res.json(); if (j && j.error) msg += ' — ' + j.error; } catch (e) {}
+      body.innerHTML = '';
+      empty.style.display = 'none';
+      errEl.style.display = 'block';
+      errEl.textContent = msg;
+      return;
+    }
+    errEl.style.display = 'none';
+    const clients = await res.json();
     if (!clients.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
     empty.style.display = 'none';
     body.innerHTML = clients.map(c => `
