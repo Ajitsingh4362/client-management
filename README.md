@@ -10,26 +10,26 @@ Tables:
 - **categories**: `id, name`
 - **clients**: `id, name, phone_number, address, category_id (FK -> categories), created_at, updated_at`
 
-RLS enabled — API service-role key hi data access karta hai, browser se direct nahi.
+RLS enabled — only the API's service-role key can access data, never directly from the browser.
 
 ## Local setup
 
 ```bash
 npm install
 cp .env.example .env
-# .env me apna SUPABASE_SERVICE_ROLE_KEY aur ADMIN_PASSWORD daalein
+# Put your SUPABASE_SERVICE_ROLE_KEY and ADMIN_PASSWORD in .env
 ```
 
-Service role key yahan se milegi: Supabase Dashboard → Project Settings → API → `service_role` key (secret hai, kabhi frontend me use na karein).
+Get the service role key here: Supabase Dashboard → Project Settings → API → `service_role` key (this is a secret — never use it in frontend code).
 
-Local run ke liye Vercel CLI use karein (kyunki ye serverless functions hain):
+Use the Vercel CLI to run locally (since these are serverless functions):
 
 ```bash
 npm install -g vercel
 vercel dev
 ```
 
-Browser me `http://localhost:3000` kholein → admin password se login karein.
+Open `http://localhost:3000` in your browser → log in with the admin password.
 
 ## Deploy to Vercel
 
@@ -37,21 +37,21 @@ Browser me `http://localhost:3000` kholein → admin password se login karein.
 vercel --prod
 ```
 
-Deploy se pehle Vercel dashboard me ye Environment Variables add karein (Project → Settings → Environment Variables):
+Before deploying, add these Environment Variables in the Vercel dashboard (Project → Settings → Environment Variables):
 
 | Key | Value |
 |---|---|
 | `SUPABASE_URL` | `https://setcpjldvktjixigiken.supabase.co` |
-| `SUPABASE_SERVICE_ROLE_KEY` | apni Supabase service_role key |
-| `ADMIN_PASSWORD` | apna admin panel password |
+| `SUPABASE_SERVICE_ROLE_KEY` | your Supabase service_role key |
+| `ADMIN_PASSWORD` | your admin panel password |
 
 ## Features
 
 - **Dashboard** — total clients, category-wise breakdown, today's & overdue follow-up reminders
 - **Clients** — add/edit/delete, search (name/phone), filter by category/status, CSV export
-- **Client pipeline status** — every client is New → In Progress → Completed, or Declined (client ne mana kiya → 30 din auto-message pause)
+- **Client pipeline status** — every client is New → In Progress → Completed, or Declined (client declined → 30-day auto-message pause)
 - **Auto WhatsApp message every 2 days** — Vercel Cron hits `/api/auto-notify` daily; it messages every client who isn't Completed/currently-paused and hasn't been messaged in the last 2 days. Message template is editable from the WhatsApp tab (admin only)
-- **Client detail page** — full info + status controls + follow-up notes with optional due dates (mark done/pending)
+- **Client detail/profile page** — full info + pipeline status controls + Deal & Progress tracking (deal status, payment received, work progress %) + follow-up notes with optional due dates (mark done/pending)
 - **Activity log** — who did what, when (client/note/employee changes, auto-message runs)
 - **Employees** — admin can add/remove staff logins with role (admin/staff); staff can't manage employees
 
@@ -68,7 +68,7 @@ Deploy se pehle Vercel dashboard me ye Environment Variables add karein (Project
 | `CRON_SECRET` | Any random long string — Vercel automatically sends it as `Authorization: Bearer <value>` on cron runs, so `/api/auto-notify` can verify the request is really from Vercel Cron |
 
 5. `vercel.json` already schedules the cron (`30 4 * * *` = 10:00 AM IST daily). Vercel checks this endpoint once a day; the endpoint itself only messages clients whose last auto-message was 2+ days ago, so each client still gets messaged roughly every 2 days.
-5. Edit the message text anytime from the admin panel's WhatsApp tab — use `{name}` and `{business}` as placeholders.
+6. Edit the message text anytime from the admin panel's WhatsApp tab — use `{name}` and `{business}` as placeholders.
 
 ## Structure
 
@@ -83,6 +83,6 @@ public/
 
 ## Security notes
 
-- `SUPABASE_SERVICE_ROLE_KEY` sirf server (Vercel env var) me rahegi, kabhi client-side code me nahi.
-- Admin panel simple shared-password auth use karta hai (`x-admin-token` header). Zyada users/roles chahiye ho to Supabase Auth add kiya ja sakta hai.
-- **Important:** Aapne apna GitHub token isi chat me paste kiya tha — usko turant GitHub settings se revoke/regenerate kar dijiye agar abhi tak nahi kiya.
+- `SUPABASE_SERVICE_ROLE_KEY` stays server-side only (Vercel env var), never in client-side code.
+- The admin panel uses simple shared-password auth (`x-admin-token` header). If you need more users/roles, Supabase Auth can be added.
+- **Important:** if you ever paste a GitHub token or other credential into a chat or share it elsewhere, revoke/regenerate it right away from GitHub settings.

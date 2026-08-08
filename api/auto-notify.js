@@ -24,7 +24,7 @@ const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 function fillTemplate(template, client) {
   return template
     .replace(/\{name\}/g, client.name || '')
-    .replace(/\{business\}/g, (client.categories && client.categories.name) || 'aapke business');
+    .replace(/\{business\}/g, (client.categories && client.categories.name) || 'your business');
 }
 
 module.exports = async (req, res) => {
@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
 
   const notifierUrl = process.env.WHATSAPP_NOTIFIER_URL;
   if (!notifierUrl) {
-    return res.status(500).json({ error: 'WHATSAPP_NOTIFIER_URL env var set nahi hai' });
+    return res.status(500).json({ error: 'WHATSAPP_NOTIFIER_URL env var is not set' });
   }
 
   try {

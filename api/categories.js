@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
 
     if (req.method === 'POST') {
       const { name } = req.body || {};
-      if (!name) return res.status(400).json({ error: 'name required hai' });
+      if (!name) return res.status(400).json({ error: 'name is required' });
       const { data, error } = await supabase.from('categories').insert([{ name }]).select();
       if (error) throw error;
       await logActivity(user.username, 'created category', 'category', name);

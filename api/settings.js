@@ -17,10 +17,10 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'PUT') {
-      if (user.role !== 'admin') return res.status(403).json({ error: 'Is action ke liye permission nahi hai' });
+      if (user.role !== 'admin') return res.status(403).json({ error: 'You do not have permission for this action' });
       const { auto_message_template } = req.body || {};
       if (!auto_message_template || !auto_message_template.trim()) {
-        return res.status(400).json({ error: 'Message template khali nahi ho sakta' });
+        return res.status(400).json({ error: 'Message template cannot be empty' });
       }
       await setSetting('auto_message_template', auto_message_template.trim());
       return res.status(200).json({ auto_message_template: auto_message_template.trim() });

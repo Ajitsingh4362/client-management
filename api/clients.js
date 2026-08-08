@@ -42,7 +42,7 @@ module.exports = async (req, res) => {
     if (req.method === 'POST') {
       const { name, phone_number, address, category_id } = req.body || {};
       if (!name || !phone_number) {
-        return res.status(400).json({ error: 'name aur phone_number required hain' });
+        return res.status(400).json({ error: 'name and phone_number are required' });
       }
       const { data, error } = await supabase
         .from('clients')
@@ -58,7 +58,7 @@ module.exports = async (req, res) => {
         id, name, phone_number, address, category_id, status, decline,
         deal_status, payment_status, amount_paid, progress_percent
       } = req.body || {};
-      if (!id) return res.status(400).json({ error: 'id required hai' });
+      if (!id) return res.status(400).json({ error: 'id is required' });
 
       const update = {};
       if (name !== undefined) update.name = name;
@@ -96,13 +96,13 @@ module.exports = async (req, res) => {
 
       if (amount_paid !== undefined) {
         const amt = Number(amount_paid);
-        if (isNaN(amt) || amt < 0) return res.status(400).json({ error: 'amount_paid valid number hona chahiye' });
+        if (isNaN(amt) || amt < 0) return res.status(400).json({ error: 'amount_paid must be a valid number' });
         update.amount_paid = amt;
       }
 
       if (progress_percent !== undefined) {
         const p = Number(progress_percent);
-        if (isNaN(p) || p < 0 || p > 100) return res.status(400).json({ error: 'progress_percent 0-100 ke beech hona chahiye' });
+        if (isNaN(p) || p < 0 || p > 100) return res.status(400).json({ error: 'progress_percent must be between 0 and 100' });
         update.progress_percent = p;
       }
 
@@ -114,7 +114,7 @@ module.exports = async (req, res) => {
       if (error) throw error;
 
       if (decline) {
-        await logActivity(user.username, 'client declined (30 din pause)', 'client', data[0] ? data[0].name : id);
+        await logActivity(user.username, 'client declined (30-day pause)', 'client', data[0] ? data[0].name : id);
       } else if (status !== undefined) {
         await logActivity(user.username, `status → ${status}`, 'client', data[0] ? data[0].name : id);
       } else if (deal_status !== undefined) {
@@ -129,7 +129,7 @@ module.exports = async (req, res) => {
 
     if (req.method === 'DELETE') {
       const { id } = req.query;
-      if (!id) return res.status(400).json({ error: 'id required hai' });
+      if (!id) return res.status(400).json({ error: 'id is required' });
       const { data: existing } = await supabase.from('clients').select('name').eq('id', id).single();
       const { error } = await supabase.from('clients').delete().eq('id', id);
       if (error) throw error;

@@ -36,7 +36,7 @@ function requireAuth(req, res, allowedRoles) {
     return null;
   }
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    res.status(403).json({ error: 'Is action ke liye permission nahi hai' });
+    res.status(403).json({ error: 'You do not have permission for this action' });
     return null;
   }
   return user;

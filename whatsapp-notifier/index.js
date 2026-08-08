@@ -80,7 +80,7 @@ function requireAdminAuth(req, res, next) {
 // Only admins may connect/disconnect the WhatsApp account itself.
 function requireAdminRole(req, res, next) {
   requireAdminAuth(req, res, () => {
-    if (req.adminUser.role !== 'admin') return res.status(403).json({ ok: false, error: 'Is action ke liye permission nahi hai' })
+    if (req.adminUser.role !== 'admin') return res.status(403).json({ ok: false, error: 'You do not have permission for this action' })
     next()
   })
 }

@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
 
   const { username, password } = req.body || {};
   if (!username || !password) {
-    return res.status(400).json({ error: 'User id aur password required hain' });
+    return res.status(400).json({ error: 'User id and password are required' });
   }
 
   // Super admin (env-based)
@@ -34,12 +34,12 @@ module.exports = async (req, res) => {
       .eq('username', username)
       .single();
     if (error || !data || data.password !== password) {
-      return res.status(401).json({ error: 'Galat user id ya password' });
+      return res.status(401).json({ error: 'Incorrect user id or password' });
     }
     const token = signToken(username, data.role);
     await logActivity(username, 'login', 'auth', null);
     return res.status(200).json({ token, username, role: data.role });
   } catch (e) {
-    return res.status(401).json({ error: 'Galat user id ya password' });
+    return res.status(401).json({ error: 'Incorrect user id or password' });
   }
 };

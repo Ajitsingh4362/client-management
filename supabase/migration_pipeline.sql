@@ -23,6 +23,6 @@ create table if not exists app_settings (
 insert into app_settings (key, value)
 values (
   'auto_message_template',
-  'Namaste {name} ji! Main aapke business {business} ke liye ek professional website aur admin panel bana raha hoon, jisse aapke customers aap tak online bhi aasani se pahunch sakein. Agar interested hain to bataiyega, main aapko details samjha dunga. Dhanyavaad!'
+  'Hi {name}! I build professional websites and admin panels for businesses like your business — {business} — so your customers can reach you online too, easily. If you''re interested, let me know and I''ll walk you through the details. Thank you!'
 )
 on conflict (key) do nothing;

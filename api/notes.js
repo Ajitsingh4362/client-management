@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
         if (error) throw error;
         return res.status(200).json(data);
       }
-      if (!client_id) return res.status(400).json({ error: 'client_id required hai' });
+      if (!client_id) return res.status(400).json({ error: 'client_id is required' });
       const { data, error } = await supabase
         .from('client_notes')
         .select('*')
@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
 
     if (req.method === 'POST') {
       const { client_id, note, due_date } = req.body || {};
-      if (!client_id || !note) return res.status(400).json({ error: 'client_id aur note required hain' });
+      if (!client_id || !note) return res.status(400).json({ error: 'client_id and note are required' });
       const { data, error } = await supabase
         .from('client_notes')
         .insert([{ client_id, note, due_date: due_date || null }])
@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
 
     if (req.method === 'PUT') {
       const { id, done } = req.body || {};
-      if (!id) return res.status(400).json({ error: 'id required hai' });
+      if (!id) return res.status(400).json({ error: 'id is required' });
       const { data, error } = await supabase.from('client_notes').update({ done }).eq('id', id).select();
       if (error) throw error;
       return res.status(200).json(data[0]);
@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
 
     if (req.method === 'DELETE') {
       const { id } = req.query;
-      if (!id) return res.status(400).json({ error: 'id required hai' });
+      if (!id) return res.status(400).json({ error: 'id is required' });
       const { error } = await supabase.from('client_notes').delete().eq('id', id);
       if (error) throw error;
       return res.status(204).end();

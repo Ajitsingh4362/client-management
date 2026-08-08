@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
 
     if (req.method === 'POST') {
       const { username, password, role } = req.body || {};
-      if (!username || !password) return res.status(400).json({ error: 'username aur password required hain' });
+      if (!username || !password) return res.status(400).json({ error: 'username and password are required' });
       const { data, error } = await supabase
         .from('employees')
         .insert([{ username, password, role: role === 'admin' ? 'admin' : 'staff' }])
@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
 
     if (req.method === 'DELETE') {
       const { id } = req.query;
-      if (!id) return res.status(400).json({ error: 'id required hai' });
+      if (!id) return res.status(400).json({ error: 'id is required' });
       const { data: existing } = await supabase.from('employees').select('username').eq('id', id).single();
       const { error } = await supabase.from('employees').delete().eq('id', id);
       if (error) throw error;
