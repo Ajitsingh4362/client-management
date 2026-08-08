@@ -68,8 +68,9 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 | `WHATSAPP_NOTIFIER_URL` | URL of your deployed `whatsapp-notifier` service |
 | `CRON_SECRET` | Any random long string — Vercel automatically sends it as `Authorization: Bearer <value>` on cron runs, so `/api/auto-notify` can verify the request is really from Vercel Cron |
 
-6. `vercel.json` already schedules the cron (`30 4 * * *` = 10:00 AM IST daily). Vercel checks this endpoint once a day; the endpoint itself only messages clients whose last auto-message was 2+ days ago, so each client still gets messaged roughly every 2 days.
-7. Edit the message text anytime from the admin panel's WhatsApp tab — use `{name}` and `{business}` as placeholders.
+6. `vercel.json` schedules the cron at `30 5 * * *` = **11:00 AM IST daily**. This is a general best-practice window for reaching hospital/clinic admin staff in India — after the morning OPD rush settles and before the evening OPD rush picks up (roughly 10:30 AM–12:30 PM). Since Hospital is the default client category, the whole daily run is timed around that. Adjust the schedule in `vercel.json` if most of your clients are a different business type. Note: Vercel checks this endpoint once a day; the endpoint itself only messages clients whose last auto-message was 2+ days ago, so each client still gets messaged roughly every 2 days.
+7. Messages are **not** sent all at once — `/api/auto-notify` hands the whole day's list to the `whatsapp-notifier` service in one call, and that service sends them one at a time, 5 minutes apart (see `BATCH_INTERVAL_MS` in `api/auto-notify.js`), so WhatsApp doesn't see a burst of near-identical messages and flag the number as spam. For 20 due clients, the last message goes out about 95 minutes after the cron fires — that's expected.
+8. Edit the message text anytime from the admin panel's WhatsApp tab — use `{name}` and `{business}` as placeholders.
 
 ## Structure
 

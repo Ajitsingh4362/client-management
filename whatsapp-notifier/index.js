@@ -261,6 +261,38 @@ app.post('/notify', requireAdminAuth, notifyLimiter, async (req, res) => {
   }
 })
 
+// Used by the daily auto-notify cron (api/auto-notify.js) to send many
+// messages WITHOUT blasting them all at once — WhatsApp is much more
+// likely to flag/block an account that sends a burst of near-identical
+// messages back to back. Instead this responds immediately (so the
+// short-lived Vercel cron function doesn't time out waiting), then keeps
+// this long-running service sending one message every `intervalMs`
+// (default 5 minutes) in the background.
+app.post('/notify-batch', requireAdminRole, async (req, res) => {
+  const { messages, intervalMs } = req.body || {}
+  if (!Array.isArray(messages) || !messages.length) {
+    return res.status(400).json({ ok: false, error: 'messages array is required' })
+  }
+  const gap = Number(intervalMs) > 0 ? Number(intervalMs) : 5 * 60 * 1000
+
+  res.json({ ok: true, queued: messages.length, intervalMs: gap })
+
+  ;(async () => {
+    for (let i = 0; i < messages.length; i++) {
+      const item = messages[i]
+      if (!item || !item.number || !item.message) continue
+      try {
+        await sendWhatsAppMessage(cleanPhone(item.number), item.message)
+        console.log(`Batch send ${i + 1}/${messages.length}: sent to ${item.number}`)
+      } catch (err) {
+        console.log(`Batch send ${i + 1}/${messages.length}: failed for ${item.number} — ${err.message}`)
+      }
+      if (i < messages.length - 1) await wait(gap) // no need to wait after the last one
+    }
+    console.log('Batch send complete.')
+  })()
+})
+
 app.listen(PORT, () => {
   console.log(`WhatsApp notifier running on port ${PORT}`)
   console.log(`Open the admin panel's WhatsApp tab to see the QR and connect.`)

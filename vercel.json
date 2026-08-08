@@ -9,6 +9,6 @@
     { "src": "/(.*)", "dest": "/public/$1" }
   ],
   "crons": [
-    { "path": "/api/auto-notify", "schedule": "30 4 * * *" }
+    { "path": "/api/auto-notify", "schedule": "30 5 * * *" }
   ]
 }

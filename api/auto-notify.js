@@ -1,8 +1,10 @@
 // Triggered automatically by Vercel Cron (see vercel.json) once a day.
 // For every client who is NOT completed/declined-and-still-paused, and who
-// hasn't been auto-messaged in the last 2 days, sends the WhatsApp pitch
-// message via the standalone whatsapp-notifier service, then stamps
-// last_message_at so the next run knows to wait 2 more days.
+// hasn't been auto-messaged in the last 2 days, this hands the whole list
+// off to the standalone whatsapp-notifier service in one go, which then
+// sends them one at a time with a gap between each (see BATCH_INTERVAL_MS)
+// instead of firing them all at once — a burst of near-identical messages
+// is much more likely to get an account flagged/blocked by WhatsApp.
 //
 // Protected by CRON_SECRET: set a CRON_SECRET env var in Vercel and Vercel
 // will automatically send `Authorization: Bearer <CRON_SECRET>` on cron
@@ -20,6 +22,7 @@ const supabase = createClient(
 );
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+const BATCH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes between each WhatsApp message
 
 function fillTemplate(template, client) {
   return template
@@ -56,34 +59,33 @@ module.exports = async (req, res) => {
       return now - new Date(c.last_message_at).getTime() >= TWO_DAYS_MS;
     });
 
-    const template = await getSetting('auto_message_template', DEFAULT_TEMPLATE);
-    const systemToken = signToken('auto-notify', 'admin');
-
-    let sent = 0;
-    let failed = 0;
-    const errors = [];
-
-    for (const client of due) {
-      const message = fillTemplate(template, client);
-      try {
-        const resp = await fetch(`${notifierUrl}/notify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-admin-token': systemToken },
-          body: JSON.stringify({ number: client.phone_number, message }),
-        });
-        const body = await resp.json().catch(() => ({}));
-        if (!resp.ok || !body.ok) throw new Error(body.error || `HTTP ${resp.status}`);
-
-        await supabase.from('clients').update({ last_message_at: new Date().toISOString() }).eq('id', client.id);
-        sent++;
-      } catch (e) {
-        failed++;
-        errors.push({ client: client.name, error: e.message });
-      }
+    if (!due.length) {
+      await logActivity('auto-notify', 'checked for due WhatsApp messages', 'system', '0 due');
+      return res.status(200).json({ ok: true, checked: 0, queued: 0 });
     }
 
-    await logActivity('auto-notify', 'sent auto WhatsApp messages', 'system', `${sent} sent, ${failed} failed`);
-    return res.status(200).json({ ok: true, checked: due.length, sent, failed, errors });
+    const template = await getSetting('auto_message_template', DEFAULT_TEMPLATE);
+    const messages = due.map(client => ({
+      number: client.phone_number,
+      message: fillTemplate(template, client),
+    }));
+
+    const resp = await fetch(`${notifierUrl}/notify-batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': signToken('auto-notify', 'admin') },
+      body: JSON.stringify({ messages, intervalMs: BATCH_INTERVAL_MS }),
+    });
+    const body = await resp.json().catch(() => ({}));
+    if (!resp.ok || !body.ok) throw new Error(body.error || `HTTP ${resp.status}`);
+
+    // Mark all of them now — the actual sends trickle out over the next
+    // ~(messages.length - 1) * 5 minutes in the background on the notifier
+    // service. Good enough for a once-a-day 2-day gate.
+    const ids = due.map(c => c.id);
+    await supabase.from('clients').update({ last_message_at: new Date().toISOString() }).in('id', ids);
+
+    await logActivity('auto-notify', 'queued auto WhatsApp messages', 'system', `${messages.length} queued, 5 min apart`);
+    return res.status(200).json({ ok: true, checked: due.length, queued: messages.length });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
