@@ -724,12 +724,21 @@
           </div>
 
           <div class="card">
-            <h2>Auto Message (sent every 2 days)</h2>
-            <p class="wa-hint" style="margin-top:0;">This message is sent to every client automatically every 2 days, until they're marked "Completed" or they decline (30-day pause). <code>{name}</code> = client's name, <code>{business}</code> = replaced with their category/business type.</p>
+            <h2>Auto Message — Indian Clients (sent every 2 days)</h2>
+            <p class="wa-hint" style="margin-top:0;">Sent to Indian clients automatically every 2 days, until they're marked "Completed" or they decline (30-day pause). <code>{name}</code> = client's name, <code>{business}</code> = replaced with their category/business type.</p>
             <textarea id="wa-template" rows="4" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:14px;" placeholder="Loading..."></textarea>
             <div class="form-actions"><button class="btn-primary" onclick="saveTemplate()">Save Template</button></div>
             <div class="error" id="wa-template-error"></div>
             <div class="wa-success" id="wa-template-success"></div>
+          </div>
+
+          <div class="card">
+            <h2>Auto Message — Foreign Clients (sent every 2 days)</h2>
+            <p class="wa-hint" style="margin-top:0;">Sent to foreign clients — write this one in English. Same <code>{name}</code> and <code>{business}</code> placeholders work here too.</p>
+            <textarea id="wa-template-foreign" rows="4" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:14px;" placeholder="Loading..."></textarea>
+            <div class="form-actions"><button class="btn-primary" onclick="saveTemplateForeign()">Save Template</button></div>
+            <div class="error" id="wa-template-foreign-error"></div>
+            <div class="wa-success" id="wa-template-foreign-success"></div>
           </div>
 
           <div class="card">
@@ -1493,12 +1502,13 @@
     } catch (e) { errEl.textContent = e.message; }
   }
 
-  /* ---------- Auto message template ---------- */
+  /* ---------- Auto message templates ---------- */
   async function loadTemplate() {
     const res = await apiGet('/api/settings');
     if (!res.ok) return;
     const data = await res.json();
     document.getElementById('wa-template').value = data.auto_message_template || '';
+    document.getElementById('wa-template-foreign').value = data.auto_message_template_foreign || '';
   }
 
   async function saveTemplate() {
@@ -1509,6 +1519,19 @@
     if (!value) { errEl.textContent = 'Template cannot be empty'; return; }
     try {
       const res = await fetch('/api/settings', { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ auto_message_template: value }) });
+      if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+      okEl.textContent = 'Template saved.';
+    } catch (e) { errEl.textContent = e.message; }
+  }
+
+  async function saveTemplateForeign() {
+    const errEl = document.getElementById('wa-template-foreign-error');
+    const okEl = document.getElementById('wa-template-foreign-success');
+    errEl.textContent = ''; okEl.textContent = '';
+    const value = document.getElementById('wa-template-foreign').value.trim();
+    if (!value) { errEl.textContent = 'Template cannot be empty'; return; }
+    try {
+      const res = await fetch('/api/settings', { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ auto_message_template_foreign: value }) });
       if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
       okEl.textContent = 'Template saved.';
     } catch (e) { errEl.textContent = e.message; }

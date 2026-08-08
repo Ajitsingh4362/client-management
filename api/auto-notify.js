@@ -14,7 +14,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { signToken } = require('./lib/auth');
 const { logActivity } = require('./lib/activity');
-const { getSetting, DEFAULT_TEMPLATE } = require('./lib/settings');
+const { getSetting, DEFAULT_TEMPLATE, DEFAULT_TEMPLATE_FOREIGN } = require('./lib/settings');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -64,10 +64,13 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, checked: 0, queued: 0 });
     }
 
-    const template = await getSetting('auto_message_template', DEFAULT_TEMPLATE);
+    const [template, templateForeign] = await Promise.all([
+      getSetting('auto_message_template', DEFAULT_TEMPLATE),
+      getSetting('auto_message_template_foreign', DEFAULT_TEMPLATE_FOREIGN),
+    ]);
     const messages = due.map(client => ({
       number: client.phone_number,
-      message: fillTemplate(template, client),
+      message: fillTemplate(client.lead_region === 'foreign' ? templateForeign : template, client),
       region: client.lead_region,
     }));
 

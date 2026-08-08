@@ -6,7 +6,10 @@ const supabase = createClient(
 );
 
 const DEFAULT_TEMPLATE =
-  'Hi {name}! I build professional websites and admin panels for businesses like your business — {business} — so your customers can reach you online too, easily. If you\'re interested, let me know and I\'ll walk you through the details. Thank you!';
+  'Namaste {name} ji! Main {business} ke liye website aur admin panel banane me help karta hoon — customers online se aapko contact kar sakein, records bhi easily manage ho jaayein. Interested? Bataiyega!';
+
+const DEFAULT_TEMPLATE_FOREIGN =
+  'Hi {name}! I help businesses like {business} build a professional website and admin panel — so customers can reach you online and your records are easy to manage. Interested? Let me know!';
 
 async function getSetting(key, fallback) {
   const { data, error } = await supabase.from('app_settings').select('value').eq('key', key).maybeSingle();
@@ -21,4 +24,4 @@ async function setSetting(key, value) {
   if (error) throw error;
 }
 
-module.exports = { getSetting, setSetting, DEFAULT_TEMPLATE };
+module.exports = { getSetting, setSetting, DEFAULT_TEMPLATE, DEFAULT_TEMPLATE_FOREIGN };
