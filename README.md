@@ -78,7 +78,7 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 
 ## Invoices & Quotations
 
-Once a client's deal is marked **Confirmed** on their profile page, two buttons appear under "Deal & Progress": **Download Quotation** and **Download Invoice**. Both are generated on the fly as PDFs (via `pdfkit`, see `api/invoice.js`) using the client's Deal Amount, Amount Paid, and Deadline — no extra data entry needed. The invoice shows Total / Amount Paid / Balance Due; the quotation just shows the total.
+Once a client's deal is marked **Confirmed** on their profile page, two buttons appear under "Deal & Progress": **Download Quotation** and **Download Invoice**. Both are generated on the fly as PDFs (via `pdfkit`, see `api/invoice.js`) using the client's Deal Amount, Amount Paid, and Deadline — no extra data entry needed. The company logo (`public/assets/logo.png`) is placed in the header automatically. The invoice shows Total / Amount Paid / Balance Due; the quotation just shows the total.
 
 Set your company name, contact info, and address once from the WhatsApp tab's "Invoice / Quotation Details" card (admin only) — they show on every generated PDF.
 

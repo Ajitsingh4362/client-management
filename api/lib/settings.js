@@ -11,7 +11,7 @@ const DEFAULT_TEMPLATE =
 const DEFAULT_TEMPLATE_FOREIGN =
   'Hi {name}! I help businesses like {business} build a professional website and admin panel — so customers can reach you online and your records are easy to manage. Interested? Let me know!';
 
-const DEFAULT_INVOICE_COMPANY_NAME = 'Zentrycs';
+const DEFAULT_INVOICE_COMPANY_NAME = 'Zentrycs Technology';
 const DEFAULT_INVOICE_COMPANY_CONTACT = '';
 const DEFAULT_INVOICE_COMPANY_ADDRESS = '';
 
