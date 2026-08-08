@@ -140,23 +140,46 @@
   .view.active { display: block; }
 
   .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
-  .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; border-top: 3px solid var(--accent-1); }
+  .stat-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px;
+    border-top: 3px solid var(--accent-1); box-shadow: 0 1px 2px rgba(16,24,40,.04);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -10px rgba(16,24,40,.16); }
   .stat-card .n { font-size: 28px; font-weight: 700; }
   .stat-card .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-top: 2px; }
   .stat-card.c2 { border-top-color: var(--accent-2); }
   .stat-card.c3 { border-top-color: var(--accent-3); }
   .stat-card.warn .n { color: var(--warn); }
 
-  .mini-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
-  .mini-stat { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; border-top: 3px solid var(--border); }
-  .mini-stat .n { font-size: 20px; font-weight: 700; }
-  .mini-stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-top: 2px; }
-  .mini-stat.c-new { border-top-color: var(--accent-1); }
-  .mini-stat.c-progress { border-top-color: var(--warn); }
-  .mini-stat.c-completed { border-top-color: #1e8f5a; }
-  .mini-stat.c-declined { border-top-color: var(--danger); }
-  .total-collected { margin-top: 14px; font-size: 14px; color: var(--muted); }
-  .total-collected b { color: var(--text); font-size: 18px; }
+  .stat-icon {
+    width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    background: rgba(41,82,227,.1); color: var(--accent-1); margin-bottom: 12px;
+  }
+  .stat-icon svg { width: 19px; height: 19px; }
+  .stat-card.c2 .stat-icon { background: rgba(14,165,165,.12); color: var(--accent-2); }
+  .stat-card.c3 .stat-icon { background: rgba(217,130,43,.12); color: var(--accent-3); }
+  .stat-card.warn .stat-icon { background: rgba(217,130,43,.16); color: var(--warn); }
+
+  .chart-row { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+  .donut-wrap { flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(16,24,40,.06)); }
+  .donut-wrap svg { display: block; }
+  .donut-wrap .donut-center-n { font-size: 20px; font-weight: 700; fill: var(--text); }
+  .donut-wrap .donut-center-l { font-size: 9px; fill: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .legend-list { flex: 1; min-width: 170px; }
+  .legend-row { display: flex; align-items: center; gap: 9px; padding: 7px 0; font-size: 13.5px; border-bottom: 1px solid var(--border); }
+  .legend-row:last-child { border-bottom: none; }
+  .legend-row .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-row .legend-label { flex: 1; color: var(--text); }
+  .legend-row .legend-count { font-weight: 700; }
+  .legend-row .legend-pct { color: var(--muted); font-size: 12px; margin-left: 4px; }
+
+  .total-collected {
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);
+    font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px;
+  }
+  .total-collected svg { width: 18px; height: 18px; color: #1e8f5a; flex-shrink: 0; }
+  .total-collected b { color: var(--text); font-size: 19px; margin-left: 2px; }
 
   .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
   .card h2 { margin-top: 0; font-size: 15px; }
@@ -294,7 +317,8 @@
     .note-add-row textarea, .note-add-row input[type=date] { flex: 1; width: 100%; }
 
     .stat-cards { grid-template-columns: 1fr 1fr; }
-    .mini-stats { grid-template-columns: 1fr 1fr; }
+    .chart-row { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .donut-wrap svg { width: 100px; height: 100px; }
   }
 
   /* Logout needs to live somewhere on mobile since the sidebar footer is hidden */
@@ -433,38 +457,50 @@
         <!-- DASHBOARD -->
         <section class="view active" id="view-dashboard">
           <div class="stat-cards" id="stat-cards">
-            <div class="stat-card"><div class="n" id="stat-total">—</div><div class="l">Total Clients</div></div>
-            <div class="stat-card c2"><div class="n" id="stat-india">—</div><div class="l">Indian Leads</div></div>
-            <div class="stat-card c3"><div class="n" id="stat-foreign">—</div><div class="l">Foreign Leads</div></div>
-            <div class="stat-card warn"><div class="n" id="stat-followups">—</div><div class="l">Due Follow-ups</div></div>
+            <div class="stat-card">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+              <div class="n" id="stat-total">—</div><div class="l">Total Clients</div>
+            </div>
+            <div class="stat-card c2">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+              <div class="n" id="stat-india">—</div><div class="l">Indian Leads</div>
+            </div>
+            <div class="stat-card c3">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.4 2.7 2.4 15.3 0 18M12 3c-2.4 2.7-2.4 15.3 0 18"/></svg></div>
+              <div class="n" id="stat-foreign">—</div><div class="l">Foreign Leads</div>
+            </div>
+            <div class="stat-card warn">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 4 1.6 5.6 1.6 5.6H4.4S6 12 6 8z"/><path d="M9.5 17.5a2.5 2.5 0 0 0 5 0"/></svg></div>
+              <div class="n" id="stat-followups">—</div><div class="l">Due Follow-ups</div>
+            </div>
           </div>
 
           <div class="card">
             <h2>Client Pipeline</h2>
-            <div class="mini-stats">
-              <div class="mini-stat c-new"><div class="n" id="stat-status-new">—</div><div class="l">New</div></div>
-              <div class="mini-stat c-progress"><div class="n" id="stat-status-progress">—</div><div class="l">In Progress</div></div>
-              <div class="mini-stat c-completed"><div class="n" id="stat-status-completed">—</div><div class="l">Completed</div></div>
-              <div class="mini-stat c-declined"><div class="n" id="stat-status-declined">—</div><div class="l">Declined</div></div>
+            <div class="chart-row">
+              <div class="donut-wrap" id="pipeline-donut"></div>
+              <div class="legend-list" id="pipeline-legend"></div>
             </div>
           </div>
 
           <div class="card">
             <h2>Deal Status</h2>
-            <div class="mini-stats">
-              <div class="mini-stat c-progress"><div class="n" id="stat-deal-pending">—</div><div class="l">Pending</div></div>
-              <div class="mini-stat c-completed"><div class="n" id="stat-deal-confirmed">—</div><div class="l">Confirmed</div></div>
+            <div class="chart-row">
+              <div class="donut-wrap" id="deal-donut"></div>
+              <div class="legend-list" id="deal-legend"></div>
             </div>
           </div>
 
           <div class="card">
             <h2>Payment Status</h2>
-            <div class="mini-stats">
-              <div class="mini-stat c-declined"><div class="n" id="stat-pay-unpaid">—</div><div class="l">Not Paid</div></div>
-              <div class="mini-stat c-progress"><div class="n" id="stat-pay-partial">—</div><div class="l">Advance Received</div></div>
-              <div class="mini-stat c-completed"><div class="n" id="stat-pay-paid">—</div><div class="l">Fully Paid</div></div>
+            <div class="chart-row">
+              <div class="donut-wrap" id="payment-donut"></div>
+              <div class="legend-list" id="payment-legend"></div>
             </div>
-            <div class="total-collected">Total Collected: <b id="stat-total-collected">₹0</b></div>
+            <div class="total-collected">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 8h5.5a2.5 2.5 0 0 1 0 5H8m0-2.5h6M8 8v9l4-3"/></svg>
+              Total Collected: <b id="stat-total-collected">₹0</b>
+            </div>
           </div>
 
           <div class="card">
@@ -788,6 +824,51 @@
   }
 
   /* ---------- Dashboard ---------- */
+  /* ---------- SVG donut chart ---------- */
+  function donutSVG(segments, opts) {
+    opts = opts || {};
+    const size = opts.size || 116;
+    const stroke = opts.stroke || 16;
+    const r = (size - stroke) / 2;
+    const c = size / 2;
+    const circumference = 2 * Math.PI * r;
+    const total = segments.reduce((s, seg) => s + seg.value, 0);
+    let offset = 0;
+    let arcs = '';
+    if (total > 0) {
+      arcs = segments.filter(seg => seg.value > 0).map(seg => {
+        const frac = seg.value / total;
+        const dash = Math.max(frac * circumference - 1.5, 0); // small gap between segments
+        const rotation = (offset / total) * 360 - 90;
+        offset += seg.value;
+        return `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${seg.color}" stroke-width="${stroke}"
+          stroke-dasharray="${dash} ${circumference}" stroke-linecap="round"
+          transform="rotate(${rotation} ${c} ${c})" />`;
+      }).join('');
+    }
+    const centerLabel = opts.centerLabel !== undefined ? opts.centerLabel : total;
+    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${stroke}" />
+      ${arcs}
+      <text x="${c}" y="${c - 3}" text-anchor="middle" class="donut-center-n">${centerLabel}</text>
+      <text x="${c}" y="${c + 13}" text-anchor="middle" class="donut-center-l">${escapeHtml(opts.centerSub || '')}</text>
+    </svg>`;
+  }
+
+  function renderDonutCard(segments, donutId, legendId, centerSub) {
+    const total = segments.reduce((s, seg) => s + seg.value, 0);
+    document.getElementById(donutId).innerHTML = donutSVG(segments, { centerSub: centerSub });
+    document.getElementById(legendId).innerHTML = segments.map(seg => {
+      const pct = total ? Math.round((seg.value / total) * 100) : 0;
+      return `<div class="legend-row">
+        <span class="dot" style="background:${seg.color}"></span>
+        <span class="legend-label">${escapeHtml(seg.label)}</span>
+        <span class="legend-count">${seg.value}</span>
+        <span class="legend-pct">${pct}%</span>
+      </div>`;
+    }).join('');
+  }
+
   async function loadStats() {
     const [res, fRes] = await Promise.all([apiGet('/api/stats'), apiGet('/api/notes?upcoming=1')]);
     if (!res.ok) return;
@@ -797,17 +878,24 @@
     document.getElementById('stat-india').textContent = stats.regionBreakdown.india;
     document.getElementById('stat-foreign').textContent = stats.regionBreakdown.foreign;
 
-    document.getElementById('stat-status-new').textContent = stats.statusBreakdown.new;
-    document.getElementById('stat-status-progress').textContent = stats.statusBreakdown.in_progress;
-    document.getElementById('stat-status-completed').textContent = stats.statusBreakdown.completed;
-    document.getElementById('stat-status-declined').textContent = stats.statusBreakdown.declined;
+    renderDonutCard([
+      { label: 'New', value: stats.statusBreakdown.new, color: 'var(--accent-1)' },
+      { label: 'In Progress', value: stats.statusBreakdown.in_progress, color: 'var(--warn)' },
+      { label: 'Completed', value: stats.statusBreakdown.completed, color: '#1e8f5a' },
+      { label: 'Declined', value: stats.statusBreakdown.declined, color: 'var(--danger)' },
+    ], 'pipeline-donut', 'pipeline-legend', 'clients');
 
-    document.getElementById('stat-deal-pending').textContent = stats.dealBreakdown.pending;
-    document.getElementById('stat-deal-confirmed').textContent = stats.dealBreakdown.confirmed;
+    renderDonutCard([
+      { label: 'Pending', value: stats.dealBreakdown.pending, color: 'var(--warn)' },
+      { label: 'Confirmed', value: stats.dealBreakdown.confirmed, color: '#1e8f5a' },
+    ], 'deal-donut', 'deal-legend', 'deals');
 
-    document.getElementById('stat-pay-unpaid').textContent = stats.paymentBreakdown.unpaid;
-    document.getElementById('stat-pay-partial').textContent = stats.paymentBreakdown.partial;
-    document.getElementById('stat-pay-paid').textContent = stats.paymentBreakdown.paid;
+    renderDonutCard([
+      { label: 'Not Paid', value: stats.paymentBreakdown.unpaid, color: 'var(--danger)' },
+      { label: 'Advance Received', value: stats.paymentBreakdown.partial, color: 'var(--warn)' },
+      { label: 'Fully Paid', value: stats.paymentBreakdown.paid, color: '#1e8f5a' },
+    ], 'payment-donut', 'payment-legend', 'clients');
+
     document.getElementById('stat-total-collected').textContent =
       '₹' + Number(stats.totalCollected || 0).toLocaleString('en-IN');
 
