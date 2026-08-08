@@ -96,6 +96,7 @@
 
 <div id="login-screen">
   <h2>Admin Login</h2>
+  <input type="text" id="username" placeholder="User ID" autocomplete="username" />
   <input type="password" id="password" placeholder="Password" />
   <div class="error" id="login-error"></div>
   <button onclick="login()">Login</button>
@@ -156,6 +157,7 @@
   if (token) showApp();
 
   async function login() {
+    const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const errEl = document.getElementById('login-error');
     errEl.textContent = '';
@@ -163,7 +165,7 @@
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ username, password })
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Login failed');
       const data = await res.json();

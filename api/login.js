@@ -5,7 +5,10 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { password } = req.body || {};
+  const { username, password } = req.body || {};
+  if (!username || username !== process.env.ADMIN_USERNAME) {
+    return res.status(401).json({ error: 'Galat user id' });
+  }
   if (!password || password !== process.env.ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Galat password' });
   }
