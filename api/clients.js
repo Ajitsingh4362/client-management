@@ -18,12 +18,15 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === 'GET') {
-      const { search, category_id, status } = req.query;
+      const { search, category_id, status, id } = req.query;
       let query = supabase
         .from('clients')
         .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, payment_status, amount_paid, progress_percent, created_at, updated_at, categories(id, name)')
         .order('created_at', { ascending: false });
 
+      if (id) {
+        query = query.eq('id', id);
+      }
       if (search) {
         query = query.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%`);
       }

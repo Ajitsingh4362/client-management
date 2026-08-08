@@ -17,16 +17,24 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { count: totalClients, error: countErr } = await supabase
-      .from('clients')
-      .select('*', { count: 'exact', head: true });
-    if (countErr) throw countErr;
+    const today = new Date().toISOString().slice(0, 10);
 
-    const { data: categories, error: catErr } = await supabase.from('categories').select('id, name');
-    if (catErr) throw catErr;
+    const [catRes, clientsRes, followupRes] = await Promise.all([
+      supabase.from('categories').select('id, name'),
+      supabase.from('clients').select('category_id'),
+      supabase
+        .from('client_notes')
+        .select('*', { count: 'exact', head: true })
+        .not('due_date', 'is', null)
+        .eq('done', false)
+        .lte('due_date', today)
+    ]);
 
-    const { data: clients, error: clientErr } = await supabase.from('clients').select('category_id');
-    if (clientErr) throw clientErr;
+    if (catRes.error) throw catRes.error;
+    if (clientsRes.error) throw clientsRes.error;
+
+    const categories = catRes.data;
+    const clients = clientsRes.data;
 
     const categoryBreakdown = categories.map(cat => ({
       id: cat.id,
@@ -35,19 +43,11 @@ module.exports = async (req, res) => {
     }));
     const uncategorized = clients.filter(c => !c.category_id).length;
 
-    const today = new Date().toISOString().slice(0, 10);
-    const { count: dueTodayCount } = await supabase
-      .from('client_notes')
-      .select('*', { count: 'exact', head: true })
-      .not('due_date', 'is', null)
-      .eq('done', false)
-      .lte('due_date', today);
-
     return res.status(200).json({
-      totalClients: totalClients || 0,
+      totalClients: clients.length,
       categoryBreakdown,
       uncategorized,
-      dueFollowUps: dueTodayCount || 0
+      dueFollowUps: followupRes.count || 0
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });

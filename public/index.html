@@ -648,9 +648,7 @@
     document.getElementById('whoami').textContent = currentUser.username + ' · ' + currentUser.role;
     document.getElementById('nav-employees').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
     document.getElementById('nav-whatsapp').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
-    await loadCategories();
-    await loadClients();
-    await loadStats();
+    await Promise.all([loadCategories(), loadClients(), loadStats()]);
   }
 
   function switchView(view) {
@@ -837,9 +835,9 @@
 
   /* ---------- Client detail ---------- */
   async function openClientDetail(id) {
-    const res = await apiGet('/api/clients?search=');
+    const res = await apiGet('/api/clients?id=' + encodeURIComponent(id));
     const all = res.ok ? await res.json() : [];
-    const client = all.find(c => c.id === id);
+    const client = all[0];
     if (!client) return;
     currentDetailClient = client;
     document.getElementById('detail-name').textContent = client.name;
