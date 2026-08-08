@@ -59,16 +59,17 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 
 1. Run `supabase/migration_pipeline.sql` once in Supabase Dashboard → SQL Editor (adds `status`, `declined_until`, `last_message_at` columns + an `app_settings` table).
 2. Run `supabase/migration_deal_progress.sql` once too (adds `deal_status`, `payment_status`, `amount_paid`, `progress_percent` columns — used on the client profile page's "Deal & Progress" card).
-3. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
-4. In Vercel → Project → Settings → Environment Variables, add:
+3. Run `supabase/migration_categories_reset.sql` if you want to replace the categories list with the default business types (Hospital, Gym, Restaurants, Coaching, School) — this clears the category off any existing clients, since it deletes and re-inserts categories.
+4. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
+5. In Vercel → Project → Settings → Environment Variables, add:
 
 | Key | Value |
 |---|---|
 | `WHATSAPP_NOTIFIER_URL` | URL of your deployed `whatsapp-notifier` service |
 | `CRON_SECRET` | Any random long string — Vercel automatically sends it as `Authorization: Bearer <value>` on cron runs, so `/api/auto-notify` can verify the request is really from Vercel Cron |
 
-5. `vercel.json` already schedules the cron (`30 4 * * *` = 10:00 AM IST daily). Vercel checks this endpoint once a day; the endpoint itself only messages clients whose last auto-message was 2+ days ago, so each client still gets messaged roughly every 2 days.
-6. Edit the message text anytime from the admin panel's WhatsApp tab — use `{name}` and `{business}` as placeholders.
+6. `vercel.json` already schedules the cron (`30 4 * * *` = 10:00 AM IST daily). Vercel checks this endpoint once a day; the endpoint itself only messages clients whose last auto-message was 2+ days ago, so each client still gets messaged roughly every 2 days.
+7. Edit the message text anytime from the admin panel's WhatsApp tab — use `{name}` and `{business}` as placeholders.
 
 ## Structure
 

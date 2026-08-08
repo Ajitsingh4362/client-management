@@ -680,6 +680,8 @@
       categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
     document.getElementById('filter-category').innerHTML = '<option value="">All categories</option>' +
       categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    const hospital = categories.find(c => c.name.toLowerCase() === 'hospital');
+    if (hospital && !editingId) document.getElementById('f-category').value = hospital.id;
   }
 
   /* ---------- Dashboard ---------- */
@@ -790,7 +792,8 @@
     document.getElementById('f-name').value = '';
     document.getElementById('f-phone').value = '';
     document.getElementById('f-address').value = '';
-    document.getElementById('f-category').value = '';
+    const hospital = categories.find(c => c.name.toLowerCase() === 'hospital');
+    document.getElementById('f-category').value = hospital ? hospital.id : '';
     document.getElementById('cancel-edit').style.display = 'none';
     document.getElementById('form-error').textContent = '';
   }
