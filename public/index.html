@@ -397,7 +397,8 @@
       <div class="brand"><img src="assets/logo-mark.png" alt="Zentrycs" class="brand-mark" /> Zentrycs <span>Clients</span></div>
       <nav>
         <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')"><span class="dot"></span> Dashboard</div>
-        <div class="nav-item" data-view="clients" onclick="switchView('clients')"><span class="dot"></span> Clients</div>
+        <div class="nav-item" data-view="add-client" onclick="switchView('add-client')"><span class="dot"></span> Add Client</div>
+        <div class="nav-item" data-view="leads" onclick="switchView('leads')"><span class="dot"></span> All Indian Leads</div>
         <div class="nav-item" data-view="activity" onclick="switchView('activity')"><span class="dot"></span> Activity Log</div>
         <div class="nav-item" data-view="employees" id="nav-employees" onclick="switchView('employees')" style="display:none;"><span class="dot"></span> Employees</div>
         <div class="nav-item" data-view="whatsapp" id="nav-whatsapp" onclick="switchView('whatsapp')" style="display:none;"><span class="dot"></span> WhatsApp</div>
@@ -431,8 +432,8 @@
           </div>
         </section>
 
-        <!-- CLIENTS LIST -->
-        <section class="view" id="view-clients">
+        <!-- ADD CLIENT -->
+        <section class="view" id="view-add-client">
           <div class="card">
             <h2 id="form-title">Add New Client</h2>
             <div class="form-grid">
@@ -446,10 +447,14 @@
               <button class="btn-secondary" id="cancel-edit" style="display:none;" onclick="resetForm()">Cancel</button>
             </div>
             <div class="error" id="form-error"></div>
+            <div class="wa-success" id="form-success"></div>
           </div>
+        </section>
 
+        <!-- ALL INDIAN LEADS -->
+        <section class="view" id="view-leads">
           <div class="card">
-            <h2>Clients</h2>
+            <h2>All Indian Leads</h2>
             <div class="toolbar">
               <input type="text" id="search-box" placeholder="Search by name or phone..." oninput="debouncedSearch()" />
               <select id="filter-category" onchange="loadClients()"></select>
@@ -476,7 +481,7 @@
 
         <!-- CLIENT DETAIL -->
         <section class="view" id="view-client-detail">
-          <div class="back-link" onclick="switchView('clients')">← Back to Clients</div>
+          <div class="back-link" onclick="switchView('leads')">← Back to All Indian Leads</div>
           <div class="card">
             <div class="detail-head">
               <div>
@@ -655,9 +660,10 @@
     document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
     document.getElementById('view-' + view).classList.add('active');
-    const titles = { dashboard: 'Dashboard', clients: 'Clients', activity: 'Activity Log', employees: 'Employees', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
+    const titles = { dashboard: 'Dashboard', 'add-client': 'Add Client', leads: 'All Indian Leads', activity: 'Activity Log', employees: 'Employees', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
     document.getElementById('page-title').textContent = titles[view] || view;
     if (view === 'dashboard') loadStats();
+    if (view === 'leads') loadClients();
     if (view === 'activity') loadActivity();
     if (view === 'employees') loadEmployees();
     if (view === 'whatsapp') { waCheckStatus(); waLoadClientsForSelect(); loadTemplate(); } else { clearInterval(waPollTimer); }
@@ -782,7 +788,7 @@
     document.getElementById('f-address').value = c.address || '';
     document.getElementById('f-category').value = c.category_id || (c.categories ? c.categories.id : '');
     document.getElementById('cancel-edit').style.display = 'inline-block';
-    switchView('clients');
+    switchView('add-client');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -796,11 +802,14 @@
     document.getElementById('f-category').value = hospital ? hospital.id : '';
     document.getElementById('cancel-edit').style.display = 'none';
     document.getElementById('form-error').textContent = '';
+    document.getElementById('form-success').textContent = '';
   }
 
   async function saveClient() {
     const errEl = document.getElementById('form-error');
-    errEl.textContent = '';
+    const okEl = document.getElementById('form-success');
+    errEl.textContent = ''; okEl.textContent = '';
+    const wasEditing = !!editingId;
     const payload = {
       name: document.getElementById('f-name').value.trim(),
       phone_number: document.getElementById('f-phone').value.trim(),
@@ -817,8 +826,13 @@
       }
       if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
       resetForm();
-      await loadClients();
       await loadStats();
+      if (wasEditing) {
+        switchView('leads'); // leads tab reloads the list itself when opened
+      } else {
+        okEl.textContent = 'Client added — you can add the next one.';
+        setTimeout(() => { okEl.textContent = ''; }, 4000);
+      }
     } catch (e) { errEl.textContent = e.message; }
   }
 
