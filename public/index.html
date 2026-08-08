@@ -3,17 +3,25 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Client Dashboard</title>
+<title>Zentrycs — Client Dashboard</title>
 <style>
   :root {
-    --bg: #f6f7f9;
-    --card: #ffffff;
-    --border: #e2e5ea;
-    --text: #1f2430;
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --border: #e4e7ec;
+    --text: #16181d;
     --muted: #6b7280;
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
+    --primary: #2952e3;
+    --primary-dark: #1f3fc0;
     --danger: #dc2626;
+    --sidebar-bg: #14161f;
+    --sidebar-text: #b7bacb;
+    --sidebar-active: #2952e3;
+    --accent-1: #2952e3;
+    --accent-2: #0ea5a5;
+    --accent-3: #d9822b;
+    --accent-4: #7c5cff;
+    --radius: 10px;
   }
   * { box-sizing: border-box; }
   body {
@@ -22,49 +30,105 @@
     background: var(--bg);
     color: var(--text);
   }
-  header {
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  header h1 { font-size: 18px; margin: 0; }
-  header button { background: none; border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; color: var(--muted); }
 
-  main { max-width: 960px; margin: 24px auto; padding: 0 16px; }
-
+  /* ---------- Login ---------- */
   #login-screen {
     max-width: 360px;
     margin: 15vh auto;
-    background: var(--card);
+    background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius);
     padding: 32px;
     text-align: center;
   }
   #login-screen h2 { margin-top: 0; }
   #login-screen input {
-    width: 100%; padding: 10px 12px; margin: 12px 0; border: 1px solid var(--border);
+    width: 100%; padding: 10px 12px; margin: 8px 0; border: 1px solid var(--border);
     border-radius: 6px; font-size: 14px;
   }
-  #login-screen button, .btn-primary {
+  #login-screen button {
     width: 100%; padding: 10px; background: var(--primary); color: #fff; border: none;
-    border-radius: 6px; font-size: 14px; cursor: pointer;
+    border-radius: 6px; font-size: 14px; cursor: pointer; margin-top: 8px;
   }
-  #login-screen button:hover, .btn-primary:hover { background: var(--primary-dark); }
+  #login-screen button:hover { background: var(--primary-dark); }
   .error { color: var(--danger); font-size: 13px; min-height: 18px; }
 
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-  .card h2 { margin-top: 0; font-size: 16px; }
+  /* ---------- Shell ---------- */
+  #app { display: none; min-height: 100vh; }
+  .shell { display: flex; min-height: 100vh; }
 
+  .sidebar {
+    width: 220px;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar .brand {
+    padding: 20px 18px;
+    font-weight: 700;
+    font-size: 16px;
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sidebar .brand span { color: var(--accent-2); }
+  .sidebar nav { flex: 1; padding: 14px 10px; }
+  .sidebar .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; margin-bottom: 4px; color: var(--sidebar-text);
+  }
+  .sidebar .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+  .sidebar .nav-item.active { background: var(--sidebar-active); color: #fff; }
+  .sidebar .nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .6; }
+  .sidebar .footer { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .sidebar .footer button {
+    width: 100%; background: none; border: 1px solid rgba(255,255,255,0.15); color: var(--sidebar-text);
+    padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  .sidebar .footer button:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+
+  .content { flex: 1; min-width: 0; }
+  .topbar {
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 16px 28px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .topbar h1 { font-size: 18px; margin: 0; }
+  .topbar .who { font-size: 13px; color: var(--muted); }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 28px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ---------- Dashboard cards ---------- */
+  .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .stat-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; border-top: 3px solid var(--accent-1);
+  }
+  .stat-card .n { font-size: 28px; font-weight: 700; }
+  .stat-card .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-top: 2px; }
+  .stat-card.c1 { border-top-color: var(--accent-1); }
+  .stat-card.c2 { border-top-color: var(--accent-2); }
+  .stat-card.c3 { border-top-color: var(--accent-3); }
+  .stat-card.c4 { border-top-color: var(--accent-4); }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 20px;
+  }
+  .card h2 { margin-top: 0; font-size: 15px; }
+  .card h2.row { display: flex; justify-content: space-between; align-items: center; }
+
+  .breakdown-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-row .name { flex: 0 0 140px; }
+  .breakdown-row .bar-track { flex: 1; height: 8px; background: var(--bg); border-radius: 999px; overflow: hidden; }
+  .breakdown-row .bar-fill { height: 100%; background: var(--primary); border-radius: 999px; }
+  .breakdown-row .count { flex: 0 0 34px; text-align: right; color: var(--muted); font-size: 13px; }
+
+  /* ---------- Forms ---------- */
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-grid label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
   .form-grid input, .form-grid select, .form-grid textarea {
@@ -72,24 +136,43 @@
   }
   .form-grid .full { grid-column: 1 / -1; }
   .form-actions { margin-top: 14px; display: flex; gap: 10px; }
-  .btn-primary { width: auto; padding: 9px 18px; }
-  .btn-secondary {
-    padding: 9px 18px; background: none; border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
-  }
+  .btn-primary { padding: 9px 18px; background: var(--primary); color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-secondary { padding: 9px 18px; background: none; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 14px; }
 
+  /* ---------- Table ---------- */
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
   td.actions { white-space: nowrap; }
-  td.actions button {
-    border: none; background: none; cursor: pointer; font-size: 13px; margin-right: 8px;
-  }
-  .edit-btn { color: var(--primary); }
+  td.actions button { border: none; background: none; cursor: pointer; font-size: 13px; margin-right: 10px; }
+  .link-btn { color: var(--primary); }
   .delete-btn { color: var(--danger); }
   .empty { color: var(--muted); text-align: center; padding: 30px 0; }
-  .badge {
-    background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 999px; font-size: 12px;
+  .badge { background: #eef1ff; color: #2952e3; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+
+  /* ---------- Notes modal ---------- */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(15,17,23,0.5);
+    align-items: center; justify-content: center; z-index: 50;
   }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--panel); border-radius: var(--radius); width: 480px; max-width: 92vw;
+    max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .modal-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-head h3 { margin: 0; font-size: 15px; }
+  .modal-head button { border: none; background: none; font-size: 18px; cursor: pointer; color: var(--muted); }
+  .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+  .modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .modal-foot textarea { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; resize: none; }
+  .note-item { border-bottom: 1px solid var(--border); padding: 10px 0; }
+  .note-item:last-child { border-bottom: none; }
+  .note-item .txt { font-size: 14px; }
+  .note-item .meta { display: flex; justify-content: space-between; margin-top: 4px; }
+  .note-item .meta small { color: var(--muted); font-size: 11px; }
+  .note-item .meta button { border: none; background: none; color: var(--danger); font-size: 11px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -102,57 +185,106 @@
   <button onclick="login()">Login</button>
 </div>
 
-<div id="app" style="display:none;">
-  <header>
-    <h1>Client Management Dashboard</h1>
-    <button onclick="logout()">Logout</button>
-  </header>
-
-  <main>
-    <div class="card">
-      <h2 id="form-title">Add New Client</h2>
-      <div class="form-grid">
-        <div>
-          <label>Client Name</label>
-          <input type="text" id="f-name" placeholder="e.g. Ramesh Traders" />
+<div id="app">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">Zentrycs <span>Clients</span></div>
+      <nav>
+        <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+          <span class="dot"></span> Dashboard
         </div>
-        <div>
-          <label>Phone Number</label>
-          <input type="text" id="f-phone" placeholder="e.g. +91 98765 43210" />
+        <div class="nav-item" data-view="clients" onclick="switchView('clients')">
+          <span class="dot"></span> Clients
         </div>
-        <div>
-          <label>Category</label>
-          <select id="f-category"></select>
-        </div>
-        <div class="full">
-          <label>Address</label>
-          <textarea id="f-address" rows="2" placeholder="Client address"></textarea>
-        </div>
+      </nav>
+      <div class="footer">
+        <button onclick="logout()">Logout</button>
       </div>
-      <div class="form-actions">
-        <button class="btn-primary" onclick="saveClient()">Save Client</button>
-        <button class="btn-secondary" id="cancel-edit" style="display:none;" onclick="resetForm()">Cancel</button>
-      </div>
-      <div class="error" id="form-error"></div>
-    </div>
+    </aside>
 
-    <div class="card">
-      <h2>Clients</h2>
-      <table>
-        <thead>
-          <tr><th>Name</th><th>Phone</th><th>Category</th><th>Address</th><th>Actions</th></tr>
-        </thead>
-        <tbody id="clients-body"></tbody>
-      </table>
-      <div class="empty" id="empty-state" style="display:none;">No clients yet — add your first one above.</div>
+    <div class="content">
+      <div class="topbar">
+        <h1 id="page-title">Dashboard</h1>
+        <div class="who">Logged in</div>
+      </div>
+
+      <main>
+        <!-- DASHBOARD VIEW -->
+        <section class="view active" id="view-dashboard">
+          <div class="stat-cards" id="stat-cards">
+            <div class="stat-card c1"><div class="n" id="stat-total">—</div><div class="l">Total Clients</div></div>
+          </div>
+          <div class="card">
+            <h2>Clients by Category</h2>
+            <div id="category-breakdown"></div>
+          </div>
+        </section>
+
+        <!-- CLIENTS VIEW -->
+        <section class="view" id="view-clients">
+          <div class="card">
+            <h2 id="form-title">Add New Client</h2>
+            <div class="form-grid">
+              <div>
+                <label>Client Name</label>
+                <input type="text" id="f-name" placeholder="e.g. Ramesh Traders" />
+              </div>
+              <div>
+                <label>Phone Number</label>
+                <input type="text" id="f-phone" placeholder="e.g. +91 98765 43210" />
+              </div>
+              <div>
+                <label>Category</label>
+                <select id="f-category"></select>
+              </div>
+              <div class="full">
+                <label>Address</label>
+                <textarea id="f-address" rows="2" placeholder="Client address"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-primary" onclick="saveClient()">Save Client</button>
+              <button class="btn-secondary" id="cancel-edit" style="display:none;" onclick="resetForm()">Cancel</button>
+            </div>
+            <div class="error" id="form-error"></div>
+          </div>
+
+          <div class="card">
+            <h2>Clients</h2>
+            <table>
+              <thead>
+                <tr><th>Name</th><th>Phone</th><th>Category</th><th>Address</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="clients-body"></tbody>
+            </table>
+            <div class="empty" id="empty-state" style="display:none;">No clients yet — add your first one above.</div>
+          </div>
+        </section>
+      </main>
     </div>
-  </main>
+  </div>
+</div>
+
+<!-- Notes modal -->
+<div class="modal-overlay" id="notes-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="notes-client-name">Notes</h3>
+      <button onclick="closeNotes()">✕</button>
+    </div>
+    <div class="modal-body" id="notes-list"></div>
+    <div class="modal-foot">
+      <textarea id="note-input" rows="2" placeholder="Follow-up note likhein..."></textarea>
+      <button class="btn-primary" onclick="addNote()">Add</button>
+    </div>
+  </div>
 </div>
 
 <script>
   let token = sessionStorage.getItem('admin_token') || '';
   let editingId = null;
   let categories = [];
+  let currentNotesClientId = null;
 
   if (token) showApp();
 
@@ -189,6 +321,15 @@
     document.getElementById('app').style.display = 'block';
     await loadCategories();
     await loadClients();
+    await loadStats();
+  }
+
+  function switchView(view) {
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    document.getElementById('view-' + view).classList.add('active');
+    document.getElementById('page-title').textContent = view === 'dashboard' ? 'Dashboard' : 'Clients';
+    if (view === 'dashboard') loadStats();
   }
 
   function authHeaders() {
@@ -202,6 +343,33 @@
     const sel = document.getElementById('f-category');
     sel.innerHTML = '<option value="">— Select category —</option>' +
       categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+
+  async function loadStats() {
+    const res = await fetch('/api/stats', { headers: authHeaders() });
+    if (res.status === 401) { logout(); return; }
+    if (!res.ok) return;
+    const stats = await res.json();
+    document.getElementById('stat-total').textContent = stats.totalClients;
+
+    const max = Math.max(1, ...stats.categoryBreakdown.map(c => c.count), stats.uncategorized);
+    const colors = ['var(--accent-1)', 'var(--accent-2)', 'var(--accent-3)', 'var(--accent-4)'];
+    let rows = stats.categoryBreakdown.map((c, i) => `
+      <div class="breakdown-row">
+        <div class="name">${escapeHtml(c.name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(c.count / max) * 100}%; background:${colors[i % colors.length]}"></div></div>
+        <div class="count">${c.count}</div>
+      </div>
+    `).join('');
+    if (stats.uncategorized > 0) {
+      rows += `
+        <div class="breakdown-row">
+          <div class="name">Uncategorized</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(stats.uncategorized / max) * 100}%; background:#9ca3af"></div></div>
+          <div class="count">${stats.uncategorized}</div>
+        </div>`;
+    }
+    document.getElementById('category-breakdown').innerHTML = rows || '<div class="empty">Koi data nahi hai abhi.</div>';
   }
 
   async function loadClients() {
@@ -223,7 +391,8 @@
         <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
         <td>${escapeHtml(c.address || '—')}</td>
         <td class="actions">
-          <button class="edit-btn" onclick='editClient(${JSON.stringify(c)})'>Edit</button>
+          <button class="link-btn" onclick='editClient(${JSON.stringify(c)})'>Edit</button>
+          <button class="link-btn" onclick="openNotes('${c.id}', ${JSON.stringify(c.name)})">Notes</button>
           <button class="delete-btn" onclick="deleteClient('${c.id}')">Delete</button>
         </td>
       </tr>
@@ -268,21 +437,14 @@
     try {
       let res;
       if (editingId) {
-        res = await fetch('/api/clients', {
-          method: 'PUT',
-          headers: authHeaders(),
-          body: JSON.stringify({ id: editingId, ...payload })
-        });
+        res = await fetch('/api/clients', { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ id: editingId, ...payload }) });
       } else {
-        res = await fetch('/api/clients', {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify(payload)
-        });
+        res = await fetch('/api/clients', { method: 'POST', headers: authHeaders(), body: JSON.stringify(payload) });
       }
       if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
       resetForm();
       await loadClients();
+      await loadStats();
     } catch (e) {
       errEl.textContent = e.message;
     }
@@ -292,11 +454,58 @@
     if (!confirm('Ye client delete karna hai?')) return;
     await fetch('/api/clients?id=' + id, { method: 'DELETE', headers: authHeaders() });
     await loadClients();
+    await loadStats();
+  }
+
+  /* ---------- Notes ---------- */
+  async function openNotes(clientId, clientName) {
+    currentNotesClientId = clientId;
+    document.getElementById('notes-client-name').textContent = 'Notes — ' + clientName;
+    document.getElementById('note-input').value = '';
+    document.getElementById('notes-modal').classList.add('active');
+    await loadNotes();
+  }
+
+  function closeNotes() {
+    document.getElementById('notes-modal').classList.remove('active');
+    currentNotesClientId = null;
+  }
+
+  async function loadNotes() {
+    const res = await fetch('/api/notes?client_id=' + currentNotesClientId, { headers: authHeaders() });
+    const notes = await res.json();
+    const list = document.getElementById('notes-list');
+    if (!notes.length) {
+      list.innerHTML = '<div class="empty">Koi note nahi hai abhi.</div>';
+      return;
+    }
+    list.innerHTML = notes.map(n => `
+      <div class="note-item">
+        <div class="txt">${escapeHtml(n.note)}</div>
+        <div class="meta">
+          <small>${new Date(n.created_at).toLocaleString('en-IN')}</small>
+          <button onclick="deleteNote('${n.id}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function addNote() {
+    const text = document.getElementById('note-input').value.trim();
+    if (!text) return;
+    await fetch('/api/notes', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ client_id: currentNotesClientId, note: text }) });
+    document.getElementById('note-input').value = '';
+    await loadNotes();
+  }
+
+  async function deleteNote(id) {
+    await fetch('/api/notes?id=' + id, { method: 'DELETE', headers: authHeaders() });
+    await loadNotes();
   }
 
   function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 </script>
 
