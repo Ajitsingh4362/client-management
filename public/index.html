@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Client Dashboard</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --border: #e2e5ea;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --danger: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  header button { background: none; border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; color: var(--muted); }
+
+  main { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+
+  #login-screen {
+    max-width: 360px;
+    margin: 15vh auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px;
+    text-align: center;
+  }
+  #login-screen h2 { margin-top: 0; }
+  #login-screen input {
+    width: 100%; padding: 10px 12px; margin: 12px 0; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 14px;
+  }
+  #login-screen button, .btn-primary {
+    width: 100%; padding: 10px; background: var(--primary); color: #fff; border: none;
+    border-radius: 6px; font-size: 14px; cursor: pointer;
+  }
+  #login-screen button:hover, .btn-primary:hover { background: var(--primary-dark); }
+  .error { color: var(--danger); font-size: 13px; min-height: 18px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .card h2 { margin-top: 0; font-size: 16px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .form-grid input, .form-grid select, .form-grid textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;
+  }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-actions { margin-top: 14px; display: flex; gap: 10px; }
+  .btn-primary { width: auto; padding: 9px 18px; }
+  .btn-secondary {
+    padding: 9px 18px; background: none; border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  td.actions { white-space: nowrap; }
+  td.actions button {
+    border: none; background: none; cursor: pointer; font-size: 13px; margin-right: 8px;
+  }
+  .edit-btn { color: var(--primary); }
+  .delete-btn { color: var(--danger); }
+  .empty { color: var(--muted); text-align: center; padding: 30px 0; }
+  .badge {
+    background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 999px; font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <h2>Admin Login</h2>
+  <input type="password" id="password" placeholder="Password" />
+  <div class="error" id="login-error"></div>
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="app" style="display:none;">
+  <header>
+    <h1>Client Management Dashboard</h1>
+    <button onclick="logout()">Logout</button>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2 id="form-title">Add New Client</h2>
+      <div class="form-grid">
+        <div>
+          <label>Client Name</label>
+          <input type="text" id="f-name" placeholder="e.g. Ramesh Traders" />
+        </div>
+        <div>
+          <label>Phone Number</label>
+          <input type="text" id="f-phone" placeholder="e.g. +91 98765 43210" />
+        </div>
+        <div>
+          <label>Category</label>
+          <select id="f-category"></select>
+        </div>
+        <div class="full">
+          <label>Address</label>
+          <textarea id="f-address" rows="2" placeholder="Client address"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" onclick="saveClient()">Save Client</button>
+        <button class="btn-secondary" id="cancel-edit" style="display:none;" onclick="resetForm()">Cancel</button>
+      </div>
+      <div class="error" id="form-error"></div>
+    </div>
+
+    <div class="card">
+      <h2>Clients</h2>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Phone</th><th>Category</th><th>Address</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="clients-body"></tbody>
+      </table>
+      <div class="empty" id="empty-state" style="display:none;">No clients yet — add your first one above.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+  let token = sessionStorage.getItem('admin_token') || '';
+  let editingId = null;
+  let categories = [];
+
+  if (token) showApp();
+
+  async function login() {
+    const password = document.getElementById('password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.textContent = '';
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Login failed');
+      const data = await res.json();
+      token = data.token;
+      sessionStorage.setItem('admin_token', token);
+      showApp();
+    } catch (e) {
+      errEl.textContent = e.message;
+    }
+  }
+
+  function logout() {
+    sessionStorage.removeItem('admin_token');
+    token = '';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'block';
+  }
+
+  async function showApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    await loadCategories();
+    await loadClients();
+  }
+
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'x-admin-token': token };
+  }
+
+  async function loadCategories() {
+    const res = await fetch('/api/categories', { headers: authHeaders() });
+    if (!res.ok) return;
+    categories = await res.json();
+    const sel = document.getElementById('f-category');
+    sel.innerHTML = '<option value="">— Select category —</option>' +
+      categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+
+  async function loadClients() {
+    const res = await fetch('/api/clients', { headers: authHeaders() });
+    if (res.status === 401) { logout(); return; }
+    const clients = await res.json();
+    const body = document.getElementById('clients-body');
+    const empty = document.getElementById('empty-state');
+    if (!clients.length) {
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    body.innerHTML = clients.map(c => `
+      <tr>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.phone_number)}</td>
+        <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
+        <td>${escapeHtml(c.address || '—')}</td>
+        <td class="actions">
+          <button class="edit-btn" onclick='editClient(${JSON.stringify(c)})'>Edit</button>
+          <button class="delete-btn" onclick="deleteClient('${c.id}')">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function editClient(c) {
+    editingId = c.id;
+    document.getElementById('form-title').textContent = 'Edit Client';
+    document.getElementById('f-name').value = c.name;
+    document.getElementById('f-phone').value = c.phone_number;
+    document.getElementById('f-address').value = c.address || '';
+    document.getElementById('f-category').value = c.category_id || (c.categories ? c.categories.id : '');
+    document.getElementById('cancel-edit').style.display = 'inline-block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function resetForm() {
+    editingId = null;
+    document.getElementById('form-title').textContent = 'Add New Client';
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-phone').value = '';
+    document.getElementById('f-address').value = '';
+    document.getElementById('f-category').value = '';
+    document.getElementById('cancel-edit').style.display = 'none';
+    document.getElementById('form-error').textContent = '';
+  }
+
+  async function saveClient() {
+    const errEl = document.getElementById('form-error');
+    errEl.textContent = '';
+    const payload = {
+      name: document.getElementById('f-name').value.trim(),
+      phone_number: document.getElementById('f-phone').value.trim(),
+      address: document.getElementById('f-address').value.trim(),
+      category_id: document.getElementById('f-category').value || null
+    };
+    if (!payload.name || !payload.phone_number) {
+      errEl.textContent = 'Name aur phone number required hain';
+      return;
+    }
+    try {
+      let res;
+      if (editingId) {
+        res = await fetch('/api/clients', {
+          method: 'PUT',
+          headers: authHeaders(),
+          body: JSON.stringify({ id: editingId, ...payload })
+        });
+      } else {
+        res = await fetch('/api/clients', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload)
+        });
+      }
+      if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+      resetForm();
+      await loadClients();
+    } catch (e) {
+      errEl.textContent = e.message;
+    }
+  }
+
+  async function deleteClient(id) {
+    if (!confirm('Ye client delete karna hai?')) return;
+    await fetch('/api/clients?id=' + id, { method: 'DELETE', headers: authHeaders() });
+    await loadClients();
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+</script>
+
+</body>
+</html>
