@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
       const { search, category_id, status, id, lead_region } = req.query;
       let query = supabase
         .from('clients')
-        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, deal_amount, deal_deadline, payment_status, amount_paid, progress_percent, lead_region, created_at, updated_at, categories(id, name)')
+        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, deal_amount, deal_deadline, website_url, payment_status, amount_paid, progress_percent, lead_region, created_at, updated_at, categories(id, name)')
         .order('created_at', { ascending: false });
 
       if (id) {
@@ -63,7 +63,7 @@ module.exports = async (req, res) => {
     if (req.method === 'PUT') {
       const {
         id, name, phone_number, address, category_id, status, decline,
-        deal_status, deal_amount, deal_deadline, payment_status, amount_paid, progress_percent
+        deal_status, deal_amount, deal_deadline, payment_status, amount_paid, progress_percent, website_url
       } = req.body || {};
       if (!id) return res.status(400).json({ error: 'id is required' });
 
@@ -100,6 +100,10 @@ module.exports = async (req, res) => {
         update.deal_amount = amt;
       }
 
+      if (website_url !== undefined) {
+        update.website_url = website_url || null;
+      }
+
       if (deal_deadline !== undefined) {
         update.deal_deadline = deal_deadline || null;
       }
@@ -127,7 +131,7 @@ module.exports = async (req, res) => {
         .from('clients')
         .update(update)
         .eq('id', id)
-        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, deal_amount, deal_deadline, payment_status, amount_paid, progress_percent, lead_region, created_at, updated_at, categories(id, name)');
+        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, deal_amount, deal_deadline, website_url, payment_status, amount_paid, progress_percent, lead_region, created_at, updated_at, categories(id, name)');
       if (error) throw error;
 
       if (decline) {
@@ -136,8 +140,8 @@ module.exports = async (req, res) => {
         await logActivity(user.username, `status → ${status}`, 'client', data[0] ? data[0].name : id);
       } else if (deal_status !== undefined) {
         await logActivity(user.username, `deal → ${deal_status}`, 'client', data[0] ? data[0].name : id);
-      } else if (deal_amount !== undefined || deal_deadline !== undefined) {
-        await logActivity(user.username, 'updated deal amount/deadline', 'client', data[0] ? data[0].name : id);
+      } else if (deal_amount !== undefined || deal_deadline !== undefined || website_url !== undefined) {
+        await logActivity(user.username, 'updated deal amount/deadline/website', 'client', data[0] ? data[0].name : id);
       } else if (payment_status !== undefined || amount_paid !== undefined || progress_percent !== undefined) {
         await logActivity(user.username, 'updated deal/progress', 'client', data[0] ? data[0].name : id);
       } else {

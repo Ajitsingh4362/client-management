@@ -665,6 +665,10 @@
                 <label>Deal Amount (₹)</label>
                 <input type="number" id="detail-deal-amount" min="0" placeholder="Total deal value" />
               </div>
+              <div class="deal-confirmed-only" id="website-url-field" style="display:none;">
+                <label>Website URL</label>
+                <input type="text" id="detail-website-url" placeholder="https://clientwebsite.com" />
+              </div>
               <div class="deal-confirmed-only" id="deal-deadline-field" style="display:none;">
                 <label>Deadline</label>
                 <input type="date" id="detail-deal-deadline" />
@@ -1269,7 +1273,8 @@
     document.getElementById('detail-meta').innerHTML =
       escapeHtml(client.phone_number) + ' · ' +
       (client.categories ? escapeHtml(client.categories.name) : 'No category') + ' · ' +
-      escapeHtml(client.address || 'No address');
+      escapeHtml(client.address || 'No address') +
+      (client.website_url ? ' · <a href="' + escapeHtml(client.website_url) + '" target="_blank" rel="noopener">' + escapeHtml(client.website_url) + '</a>' : '');
     document.getElementById('detail-note-input').value = '';
     document.getElementById('detail-note-due').value = '';
     detailReturnView = client.lead_region === 'foreign' ? 'foreign-leads' : 'leads';
@@ -1333,9 +1338,11 @@
     document.getElementById('detail-payment-status').value = c.payment_status || 'unpaid';
     document.getElementById('detail-amount-paid').value = c.amount_paid || '';
     document.getElementById('detail-deal-amount').value = c.deal_amount || '';
+    document.getElementById('detail-website-url').value = c.website_url || '';
     document.getElementById('detail-deal-deadline').value = c.deal_deadline || '';
     const showConfirmedFields = dealStatus === 'confirmed';
     document.getElementById('deal-amount-field').style.display = showConfirmedFields ? '' : 'none';
+    document.getElementById('website-url-field').style.display = showConfirmedFields ? '' : 'none';
     document.getElementById('deal-deadline-field').style.display = showConfirmedFields ? '' : 'none';
     document.getElementById('deal-documents-field').style.display = showConfirmedFields ? '' : 'none';
     const progress = c.progress_percent || 0;
@@ -1367,6 +1374,7 @@
     };
     if (isConfirmed) {
       payload.deal_amount = Number(document.getElementById('detail-deal-amount').value) || 0;
+      payload.website_url = document.getElementById('detail-website-url').value.trim() || null;
       payload.deal_deadline = document.getElementById('detail-deal-deadline').value || null;
     }
     try {
