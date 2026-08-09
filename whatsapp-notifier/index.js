@@ -35,7 +35,8 @@
 
 const crypto = require('crypto')
 const makeWASocket = require('@whiskeysockets/baileys').default
-const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys')
+const { DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys')
+const { useSupabaseAuthState } = require('./use-supabase-auth-state')
 const QRCode = require('qrcode')
 const express = require('express')
 const cors = require('cors')
@@ -85,9 +86,13 @@ function requireAdminRole(req, res, next) {
   })
 }
 
+let reconnectAttempts = 0
+let authState = null // keep a reference so /logout can clear the saved session
+
 // ─── WhatsApp connection ─────────────────────────────────
 async function startWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState('./auth')
+  const { state, saveCreds, clearAll } = await useSupabaseAuthState()
+  authState = { clearAll }
   const { version } = await fetchLatestBaileysVersion()
   console.log('Using WhatsApp Web version:', version.join('.'))
 
@@ -112,11 +117,21 @@ async function startWhatsApp() {
       const statusCode = lastDisconnect?.error?.output?.statusCode
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut
       console.log('Disconnect reason:', lastDisconnect?.error?.message || lastDisconnect?.error, '| statusCode:', statusCode)
-      console.log(shouldReconnect ? 'Reconnecting...' : 'Logged out — delete ./auth folder and restart to re-link.')
-      if (shouldReconnect) setTimeout(startWhatsApp, 3000)
+      if (shouldReconnect) {
+        // Exponential backoff (3s, 6s, 12s... capped at 60s) instead of a
+        // fixed 3s retry — avoids hammering WhatsApp's servers if there's a
+        // sustained network blip, which can itself trigger further bans/drops.
+        reconnectAttempts += 1
+        const delay = Math.min(3000 * 2 ** (reconnectAttempts - 1), 60000)
+        console.log(`Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts})...`)
+        setTimeout(startWhatsApp, delay)
+      } else {
+        console.log('Logged out — scan a new QR from the admin panel WhatsApp tab to re-link.')
+      }
     } else if (connection === 'open') {
       isReady = true
       currentQrDataUrl = null
+      reconnectAttempts = 0
       console.log('WhatsApp connected and ready.')
     }
   })
@@ -242,6 +257,7 @@ app.get('/qr', requireAdminRole, (req, res) => {
 app.post('/logout', requireAdminRole, async (req, res) => {
   try {
     if (sock) await sock.logout()
+    if (authState) await authState.clearAll()
     isReady = false
     currentQrDataUrl = null
     res.json({ ok: true })
