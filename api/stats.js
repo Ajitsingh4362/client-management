@@ -68,8 +68,11 @@ module.exports = async (req, res) => {
       .filter(c => c.deal_status === 'confirmed')
       .reduce((sum, c) => sum + (Number(c.deal_amount) || 0), 0);
 
+    // A deadline only matters while payment is still pending — once a client
+    // has fully paid, the deal is done and shouldn't clutter (or show as
+    // "overdue" in) the upcoming-deadlines widget.
     const upcomingDeadlines = clients
-      .filter(c => c.deal_status === 'confirmed' && c.deal_deadline)
+      .filter(c => c.deal_status === 'confirmed' && c.deal_deadline && c.payment_status !== 'paid')
       .sort((a, b) => a.deal_deadline < b.deal_deadline ? -1 : 1)
       .slice(0, 5)
       .map(c => ({ id: c.id, name: c.name, deal_deadline: c.deal_deadline, deal_amount: c.deal_amount, overdue: c.deal_deadline < today }));
