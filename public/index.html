@@ -239,6 +239,8 @@
   .dashboard-greeting { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
   .dashboard-greeting .wave { display: inline-block; }
   td.added-on { white-space: nowrap; font-size: 13px; }
+  .assigned-col { display: none; white-space: nowrap; }
+  body.role-admin .assigned-col { display: table-cell; }
   .added-ago { color: var(--muted, #888); font-size: 12px; }
   .badge.role-admin { background: #fdf0e3; color: #b25b0d; }
   .badge.status-new { background: #eef1ff; color: #2952e3; }
@@ -657,7 +659,7 @@
             </div>
             <div class="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Status</th><th>Added On</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Status</th><th class="assigned-col">Assigned To</th><th>Added On</th><th>Actions</th></tr></thead>
               <tbody id="clients-body"></tbody>
             </table>
             </div>
@@ -714,7 +716,7 @@
             </div>
             <div class="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Status</th><th>Added On</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Status</th><th class="assigned-col">Assigned To</th><th>Added On</th><th>Actions</th></tr></thead>
               <tbody id="foreign-clients-body"></tbody>
             </table>
             </div>
@@ -1039,6 +1041,7 @@
     document.getElementById('whoami').title = currentUser.username;
     document.getElementById('dashboard-greeting').innerHTML = `Welcome, ${escapeHtml(displayName(currentUser.username))} <span class="wave">👋</span>`;
     document.getElementById('nav-employees').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+    document.body.classList.toggle('role-admin', currentUser.role === 'admin');
     document.getElementById('nav-whatsapp').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
     // Only Admin and Lead Generation can add new clients.
     document.getElementById('nav-add-client').style.display = canAddClients() ? 'flex' : 'none';
@@ -1282,6 +1285,7 @@
         <td>${escapeHtml(c.phone_number)}</td>
         <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
         <td>${statusBadge(c)}</td>
+        <td class="assigned-col">${c.assigned_to ? escapeHtml(c.assigned_to.split('@')[0]) : '—'}</td>
         <td class="added-on">${formatAddedOn(c.created_at)}</td>
         <td class="actions" onclick="event.stopPropagation()">
           <button class="link-btn" onclick="event.stopPropagation(); openClientDetail('${c.id}')">View Profile</button>
@@ -1552,6 +1556,7 @@
       (client.categories ? escapeHtml(client.categories.name) : 'No category') + ' · ' +
       escapeHtml(client.address || 'No address') +
       ' · Added ' + escapeHtml(new Date(client.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })) +
+      (currentUser.role === 'admin' ? ' · Assigned to: ' + (client.assigned_to ? escapeHtml(client.assigned_to.split('@')[0]) : 'Unassigned') : '') +
       (client.website_url ? ' · <a href="' + escapeHtml(client.website_url) + '" target="_blank" rel="noopener">' + escapeHtml(client.website_url) + '</a>' : '');
     setDetailContactLinks(client.phone_number);
     document.getElementById('detail-note-input').value = '';
