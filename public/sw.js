@@ -3,10 +3,8 @@
 // IMPORTANT: /api/* requests are NEVER cached — client/deal/payment data must
 // always come straight from the network so nothing stale or wrong is shown.
 
-const CACHE_NAME = 'zentrycs-shell-v1';
+const CACHE_NAME = 'zentrycs-shell-v2';
 const SHELL_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.png',
   '/assets/logo.png',
@@ -15,6 +13,13 @@ const SHELL_ASSETS = [
   '/assets/icon-192.png',
   '/assets/icon-512.png',
 ];
+
+// Requests where the network must always be tried first (page HTML), so a
+// deployed fix always shows up immediately instead of being stuck behind a
+// stale cached copy. Cache is only a fallback for when there's no network.
+function isNetworkFirst(url) {
+  return url.pathname === '/' || url.pathname.endsWith('.html');
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -42,17 +47,33 @@ self.addEventListener('fetch', (event) => {
   // Only handle same-origin GET requests for the app shell.
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((res) => {
-        // Cache a copy of newly-seen same-origin static assets for next time.
+  if (isNetworkFirst(url)) {
+    // Network-first: always try to get the latest HTML. Only fall back to
+    // whatever's cached if the network request fails (i.e. truly offline).
+    event.respondWith(
+      fetch(req).then((res) => {
         if (res.ok) {
           const copy = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
         }
         return res;
-      }).catch(() => caches.match('/index.html'));
+      }).catch(() => caches.match(req).then((cached) => cached || caches.match('/index.html')))
+    );
+    return;
+  }
+
+  // Cache-first for truly static assets (icons/logo) that don't change often.
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        }
+        return res;
+      });
     })
   );
 });
+

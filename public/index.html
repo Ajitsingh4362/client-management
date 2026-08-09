@@ -1866,6 +1866,12 @@
 
   /* ---------- PWA: service worker registration ---------- */
   if ('serviceWorker' in navigator) {
+    let swRefreshed = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (swRefreshed) return;
+      swRefreshed = true;
+      window.location.reload();
+    });
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch((err) => {
         console.warn('Service worker registration failed:', err);
