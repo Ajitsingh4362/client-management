@@ -54,7 +54,13 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 - **Auto WhatsApp message every 2 days** — Vercel Cron hits `/api/auto-notify` daily; it messages every client who isn't Completed, isn't currently-paused, and whose deal isn't already Confirmed, and who hasn't been messaged in the last 2 days. Message template is editable from the WhatsApp tab (admin only)
 - **Client detail/profile page** — full info + pipeline status controls + Deal & Progress tracking (deal status, payment received, work progress %, deal amount, deadline) + downloadable Quotation/Invoice PDFs once a deal is Confirmed + follow-up notes with optional due dates (mark done/pending)
 - **Activity log** — who did what, when (client/note/employee changes, auto-message runs)
-- **Employees** — admin can add/remove staff logins with role (admin/staff); staff can't manage employees
+- **Employees** — admin can add/remove employee logins with one of three roles:
+  - **Admin** — full access to everything.
+  - **Lead Generation** — can add new clients (India/Foreign) and update Deal & Payment details, but cannot edit client core details, change pipeline status, delete clients, or manage follow-up notes.
+  - **Tele Caller** — can view clients, change pipeline status (In Progress/Completed/Declined), manage follow-up notes, and update Deal & Payment details, but cannot add new clients, edit client core details, or delete clients.
+  - Only Admin can manage employees or WhatsApp settings.
+- **Auto-distributed leads** — every new client added is automatically assigned to whichever Tele Caller currently has the fewest assigned clients, keeping the workload evenly split (e.g. 50 new leads / 5 Tele Callers → ~10 each). Each Tele Caller sees only their own assigned clients under the **My Leads** tab, and their Dashboard (stat cards, pipeline, deal/payment breakdowns, upcoming deadlines, follow-ups) is scoped to just their own leads too.
+- **Tele Caller income** — Tele Callers see a **My Income** card on their Dashboard: 15% commission on Amount Received, counted once a client is marked Fully Paid. Shows both lifetime income and the current month's income (resets each calendar month based on when the client was marked paid).
 - **Notes** — a general team notepad, not tied to any client (see everyone's shared notes, delete your own; admins can delete any)
 
 ## Setting up the 2-day auto-message
@@ -66,7 +72,10 @@ Before deploying, add these Environment Variables in the Vercel dashboard (Proje
 5. Run `supabase/migration_deal_amount_deadline.sql` once too (adds `deal_amount` and `deal_deadline` — shown on the client profile once a deal is marked Confirmed, and rolled up into the dashboard's "Total Deal Value" and "Upcoming Deal Deadlines" cards).
 6. Run `supabase/migration_set_templates.sql` if you want to set the Indian and Foreign auto-message templates directly via SQL instead of typing them into the WhatsApp tab. Indian and foreign clients now use **separate** templates (`auto_message_template` for India, `auto_message_template_foreign` for foreign — write this one in English) — both editable from the WhatsApp tab.
 7. Run `supabase/migration_team_notes.sql` once too (creates the `team_notes` table used by the general Notes tab).
-8. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
+8. Run `supabase/migration_employee_roles.sql` once too (updates the `employees.role` column to support the new `admin` / `lead_generation` / `tele_caller` roles, and migrates any existing `staff` employees to `tele_caller` by default — reassign individually afterwards if some of them should be `lead_generation` instead).
+9. Run `supabase/migration_client_assignment.sql` once too (adds the `assigned_to` column on `clients`, used to auto-distribute new leads evenly among Tele Callers).
+10. Run `supabase/migration_paid_at.sql` once too (adds the `paid_at` timestamp on `clients`, used to calculate each Tele Caller's monthly income).
+11. Deploy the `whatsapp-notifier/` service separately (see its own README) and connect it once via the admin panel's WhatsApp tab (scan QR).
 9. In Vercel → Project → Settings → Environment Variables, add:
 
 | Key | Value |

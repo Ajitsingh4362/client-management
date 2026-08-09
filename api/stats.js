@@ -18,16 +18,23 @@ module.exports = async (req, res) => {
 
   try {
     const today = new Date().toISOString().slice(0, 10);
+    const { assigned_to } = req.query;
+
+    let clientsQuery = supabase.from('clients').select('id, name, category_id, status, deal_status, deal_amount, deal_deadline, payment_status, amount_paid, paid_at, lead_region');
+    if (assigned_to) clientsQuery = clientsQuery.eq('assigned_to', assigned_to);
+
+    let followupQuery = supabase
+      .from('client_notes')
+      .select(assigned_to ? '*, clients!inner(assigned_to)' : '*', { count: 'exact', head: true })
+      .not('due_date', 'is', null)
+      .eq('done', false)
+      .lte('due_date', today);
+    if (assigned_to) followupQuery = followupQuery.eq('clients.assigned_to', assigned_to);
 
     const [catRes, clientsRes, followupRes] = await Promise.all([
       supabase.from('categories').select('id, name'),
-      supabase.from('clients').select('id, name, category_id, status, deal_status, deal_amount, deal_deadline, payment_status, amount_paid, lead_region'),
-      supabase
-        .from('client_notes')
-        .select('*', { count: 'exact', head: true })
-        .not('due_date', 'is', null)
-        .eq('done', false)
-        .lte('due_date', today)
+      clientsQuery,
+      followupQuery
     ]);
 
     if (catRes.error) throw catRes.error;
@@ -82,6 +89,28 @@ module.exports = async (req, res) => {
       foreign: count(clients, c => c.lead_region === 'foreign'),
     };
 
+    // Tele Caller income: 15% commission on Amount Paid, only for clients
+    // marked Fully Paid. Only computed when viewing a specific person's
+    // scope (assigned_to), since it's a per-person commission figure.
+    let myIncome = null;
+    if (assigned_to) {
+      const now = new Date();
+      let lifetime = 0;
+      let currentMonth = 0;
+      clients.forEach(c => {
+        if (c.payment_status !== 'paid') return;
+        const commission = (Number(c.amount_paid) || 0) * 0.15;
+        lifetime += commission;
+        if (c.paid_at) {
+          const paidDate = new Date(c.paid_at);
+          if (paidDate.getFullYear() === now.getFullYear() && paidDate.getMonth() === now.getMonth()) {
+            currentMonth += commission;
+          }
+        }
+      });
+      myIncome = { lifetime: Math.round(lifetime), currentMonth: Math.round(currentMonth) };
+    }
+
     return res.status(200).json({
       totalClients: clients.length,
       categoryBreakdown,
@@ -94,6 +123,7 @@ module.exports = async (req, res) => {
       totalDealValue,
       upcomingDeadlines,
       regionBreakdown,
+      myIncome,
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });

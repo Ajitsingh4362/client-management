@@ -26,9 +26,13 @@ module.exports = async (req, res) => {
     if (req.method === 'POST') {
       const { username, password, role } = req.body || {};
       if (!username || !password) return res.status(400).json({ error: 'username and password are required' });
+      const ALLOWED_ROLES = ['admin', 'lead_generation', 'tele_caller'];
+      if (!ALLOWED_ROLES.includes(role)) {
+        return res.status(400).json({ error: 'role must be one of: admin, lead_generation, tele_caller' });
+      }
       const { data, error } = await supabase
         .from('employees')
-        .insert([{ username, password, role: role === 'admin' ? 'admin' : 'staff' }])
+        .insert([{ username, password, role }])
         .select('id, username, role, created_at');
       if (error) throw error;
       await logActivity(user.username, 'added employee', 'employee', username);

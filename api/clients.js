@@ -7,6 +7,39 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Picks the Tele Caller with the fewest currently-assigned clients and
+// returns their username, so new leads stay evenly split (e.g. 50 leads /
+// 5 tele callers -> 10 each). Returns null if there are no tele callers yet.
+async function pickTeleCallerForAssignment() {
+  const { data: teleCallers, error: empErr } = await supabase
+    .from('employees')
+    .select('username')
+    .eq('role', 'tele_caller');
+  if (empErr || !teleCallers || !teleCallers.length) return null;
+
+  const { data: assignedClients, error: clientsErr } = await supabase
+    .from('clients')
+    .select('assigned_to')
+    .not('assigned_to', 'is', null);
+  if (clientsErr) return teleCallers[0].username;
+
+  const counts = {};
+  teleCallers.forEach(t => { counts[t.username] = 0; });
+  (assignedClients || []).forEach(c => {
+    if (counts[c.assigned_to] !== undefined) counts[c.assigned_to]++;
+  });
+
+  let chosen = teleCallers[0].username;
+  let min = counts[chosen];
+  for (const t of teleCallers) {
+    if (counts[t.username] < min) {
+      min = counts[t.username];
+      chosen = t.username;
+    }
+  }
+  return chosen;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
@@ -18,10 +51,10 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === 'GET') {
-      const { search, category_id, status, id, lead_region } = req.query;
+      const { search, category_id, status, id, lead_region, assigned_to } = req.query;
       let query = supabase
         .from('clients')
-        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, deal_amount, deal_deadline, website_url, payment_status, amount_paid, progress_percent, lead_region, created_at, updated_at, categories(id, name)')
+        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, deal_amount, deal_deadline, website_url, payment_status, amount_paid, progress_percent, lead_region, assigned_to, paid_at, created_at, updated_at, categories(id, name)')
         .order('created_at', { ascending: false });
 
       if (id) {
@@ -39,6 +72,9 @@ module.exports = async (req, res) => {
       if (lead_region) {
         query = query.eq('lead_region', lead_region);
       }
+      if (assigned_to) {
+        query = query.eq('assigned_to', assigned_to);
+      }
 
       const { data, error } = await query;
       if (error) throw error;
@@ -46,17 +82,26 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'POST') {
+      // Only Admin and Lead Generation can add new clients.
+      if (!['admin', 'lead_generation'].includes(user.role)) {
+        return res.status(403).json({ error: 'You do not have permission to add clients' });
+      }
       const { name, phone_number, address, category_id, lead_region } = req.body || {};
       if (!name || !phone_number) {
         return res.status(400).json({ error: 'name and phone_number are required' });
       }
       const region = lead_region === 'foreign' ? 'foreign' : 'india';
+      const assigned_to = await pickTeleCallerForAssignment();
       const { data, error } = await supabase
         .from('clients')
-        .insert([{ name, phone_number, address, category_id: category_id || null, lead_region: region }])
+        .insert([{ name, phone_number, address, category_id: category_id || null, lead_region: region, assigned_to }])
         .select();
       if (error) throw error;
-      await logActivity(user.username, `created ${region} client`, 'client', name);
+      await logActivity(
+        user.username,
+        `created ${region} client${assigned_to ? ` (auto-assigned to ${assigned_to})` : ''}`,
+        'client', name
+      );
       return res.status(201).json(data[0]);
     }
 
@@ -66,6 +111,25 @@ module.exports = async (req, res) => {
         deal_status, deal_amount, deal_deadline, payment_status, amount_paid, progress_percent, website_url
       } = req.body || {};
       if (!id) return res.status(400).json({ error: 'id is required' });
+
+      // Role-based field permissions:
+      // - Core details (name/phone/address/category) -> Admin only
+      // - Pipeline status / decline -> Admin, Tele Caller
+      // - Deal & payment fields -> Admin, Tele Caller, Lead Generation
+      const editingCoreFields = name !== undefined || phone_number !== undefined || address !== undefined || category_id !== undefined;
+      const editingStatusFields = decline || status !== undefined;
+      const editingDealFields = deal_status !== undefined || deal_amount !== undefined || deal_deadline !== undefined
+        || payment_status !== undefined || amount_paid !== undefined || progress_percent !== undefined || website_url !== undefined;
+
+      if (editingCoreFields && user.role !== 'admin') {
+        return res.status(403).json({ error: 'You do not have permission to edit client details' });
+      }
+      if (editingStatusFields && !['admin', 'tele_caller'].includes(user.role)) {
+        return res.status(403).json({ error: 'You do not have permission to change client status' });
+      }
+      if (editingDealFields && !['admin', 'tele_caller', 'lead_generation'].includes(user.role)) {
+        return res.status(403).json({ error: 'You do not have permission to edit deal/payment details' });
+      }
 
       const update = {};
       if (name !== undefined) update.name = name;
@@ -113,6 +177,17 @@ module.exports = async (req, res) => {
           return res.status(400).json({ error: 'Invalid payment_status' });
         }
         update.payment_status = payment_status;
+        if (payment_status === 'paid') {
+          // Only stamp paid_at the moment it newly becomes 'paid', so re-saving
+          // the Deal & Progress form later doesn't keep resetting the month
+          // this payment counts towards (used for Tele Caller income).
+          const { data: existingClient } = await supabase.from('clients').select('payment_status').eq('id', id).single();
+          if (!existingClient || existingClient.payment_status !== 'paid') {
+            update.paid_at = new Date().toISOString();
+          }
+        } else {
+          update.paid_at = null;
+        }
       }
 
       if (amount_paid !== undefined) {
@@ -131,7 +206,7 @@ module.exports = async (req, res) => {
         .from('clients')
         .update(update)
         .eq('id', id)
-        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, deal_amount, deal_deadline, website_url, payment_status, amount_paid, progress_percent, lead_region, created_at, updated_at, categories(id, name)');
+        .select('id, name, phone_number, address, status, declined_until, last_message_at, deal_status, deal_amount, deal_deadline, website_url, payment_status, amount_paid, progress_percent, lead_region, assigned_to, paid_at, created_at, updated_at, categories(id, name)');
       if (error) throw error;
 
       if (decline) {
@@ -151,6 +226,9 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'DELETE') {
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: 'You do not have permission to delete clients' });
+      }
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'id is required' });
       const { data: existing } = await supabase.from('clients').select('name').eq('id', id).single();

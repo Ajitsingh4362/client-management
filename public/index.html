@@ -236,6 +236,10 @@
   .delete-btn { color: var(--danger); }
   .empty { color: var(--muted); text-align: center; padding: 30px 0; }
   .badge { background: #eef1ff; color: #2952e3; padding: 2px 8px; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+  .dashboard-greeting { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+  .dashboard-greeting .wave { display: inline-block; }
+  td.added-on { white-space: nowrap; font-size: 13px; }
+  .added-ago { color: var(--muted, #888); font-size: 12px; }
   .badge.role-admin { background: #fdf0e3; color: #b25b0d; }
   .badge.status-new { background: #eef1ff; color: #2952e3; }
   .badge.status-in_progress { background: #fff4e0; color: #b25b0d; }
@@ -500,10 +504,11 @@
       <div class="brand"><img src="assets/logo-mark.png" alt="Zentrycs" class="brand-mark" /> Zentrycs <span>Clients</span></div>
       <nav>
         <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')"><span class="dot"></span> Dashboard</div>
-        <div class="nav-item" data-view="add-client" onclick="switchView('add-client')"><span class="dot"></span> Add Indian Client</div>
+        <div class="nav-item" data-view="add-client" id="nav-add-client" onclick="switchView('add-client')"><span class="dot"></span> Add Indian Client</div>
         <div class="nav-item" data-view="leads" onclick="switchView('leads')"><span class="dot"></span> All Indian Leads</div>
-        <div class="nav-item" data-view="add-foreign-client" onclick="switchView('add-foreign-client')"><span class="dot"></span> Add Foreign Client</div>
+        <div class="nav-item" data-view="add-foreign-client" id="nav-add-foreign-client" onclick="switchView('add-foreign-client')"><span class="dot"></span> Add Foreign Client</div>
         <div class="nav-item" data-view="foreign-leads" onclick="switchView('foreign-leads')"><span class="dot"></span> All Foreign Leads</div>
+        <div class="nav-item" data-view="my-leads" id="nav-my-leads" onclick="switchView('my-leads')"><span class="dot"></span> My Leads</div>
         <div class="nav-item nav-item-desktop-only" data-view="activity" onclick="switchView('activity')"><span class="dot"></span> Activity Log</div>
         <div class="nav-item" data-view="notes" onclick="switchView('notes')"><span class="dot"></span> Notes</div>
         <div class="nav-item" data-view="employees" id="nav-employees" onclick="switchView('employees')" style="display:none;"><span class="dot"></span> Employees</div>
@@ -524,6 +529,7 @@
       <main>
         <!-- DASHBOARD -->
         <section class="view active" id="view-dashboard">
+          <div class="dashboard-greeting" id="dashboard-greeting"></div>
           <div class="stat-cards" id="stat-cards">
             <div class="stat-card">
               <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
@@ -540,6 +546,19 @@
             <div class="stat-card warn">
               <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 4 1.6 5.6 1.6 5.6H4.4S6 12 6 8z"/><path d="M9.5 17.5a2.5 2.5 0 0 0 5 0"/></svg></div>
               <div class="n" id="stat-followups">—</div><div class="l">Due Follow-ups</div>
+            </div>
+          </div>
+
+          <div class="card" id="my-income-card" style="display:none;">
+            <h2>My Income</h2>
+            <div style="color:var(--muted); font-size:13px; margin-bottom:10px;">15% commission on Amount Received, counted once a client is Fully Paid.</div>
+            <div class="stat-cards" style="margin-bottom:0;">
+              <div class="stat-card c2">
+                <div class="n" id="income-month">₹0</div><div class="l">This Month</div>
+              </div>
+              <div class="stat-card">
+                <div class="n" id="income-lifetime">₹0</div><div class="l">Lifetime Income</div>
+              </div>
             </div>
           </div>
 
@@ -638,7 +657,7 @@
             </div>
             <div class="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Status</th><th>Added On</th><th>Actions</th></tr></thead>
               <tbody id="clients-body"></tbody>
             </table>
             </div>
@@ -695,12 +714,38 @@
             </div>
             <div class="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Phone</th><th>Category</th><th>Status</th><th>Added On</th><th>Actions</th></tr></thead>
               <tbody id="foreign-clients-body"></tbody>
             </table>
             </div>
             <div class="empty" id="empty-state2" style="display:none;">No clients found.</div>
             <div class="error" id="foreign-clients-load-error" style="display:none;"></div>
+          </div>
+        </section>
+
+        <!-- MY LEADS (auto-assigned) -->
+        <section class="view" id="view-my-leads">
+          <div class="card">
+            <h2>My Leads</h2>
+            <div style="color:var(--muted); font-size:13px; margin-bottom:8px;">Leads auto-assigned to you when they were added.</div>
+            <div class="toolbar">
+              <input type="text" id="search-box3" placeholder="Search by name or phone..." oninput="debouncedSearchMyLeads()" />
+              <select id="filter-status3" onchange="loadMyLeads()">
+                <option value="">All statuses</option>
+                <option value="new">New</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="declined">Declined</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Phone</th><th>Region</th><th>Category</th><th>Status</th><th>Added On</th><th>Actions</th></tr></thead>
+              <tbody id="my-leads-body"></tbody>
+            </table>
+            </div>
+            <div class="empty" id="empty-state3" style="display:none;">No leads assigned to you yet.</div>
+            <div class="error" id="my-leads-load-error" style="display:none;"></div>
           </div>
         </section>
 
@@ -726,7 +771,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
                   <span>Script</span>
                 </button>
-                <button class="btn-secondary" onclick="editFromDetail()">Edit</button>
+                <button class="btn-secondary" id="detail-edit-btn" onclick="editFromDetail()">Edit</button>
               </div>
             </div>
             <div class="status-actions" id="detail-status-actions"></div>
@@ -785,7 +830,7 @@
           <div class="card">
             <h2>Follow-up Notes</h2>
             <div id="detail-notes-list"></div>
-            <div class="note-add-row">
+            <div class="note-add-row" id="detail-note-add-row">
               <textarea id="detail-note-input" rows="2" placeholder="Write a follow-up note..."></textarea>
               <input type="date" id="detail-note-due" />
               <button class="btn-primary" onclick="addDetailNote()">Add</button>
@@ -823,7 +868,7 @@
             <div class="form-grid">
               <div><label>User ID</label><input type="text" id="e-username" placeholder="e.g. suman" /></div>
               <div><label>Password</label><input type="text" id="e-password" placeholder="Set a password" /></div>
-              <div><label>Role</label><select id="e-role"><option value="staff">Staff</option><option value="admin">Admin</option></select></div>
+              <div><label>Role</label><select id="e-role"><option value="lead_generation">Lead Generation</option><option value="tele_caller">Tele Caller</option><option value="admin">Admin</option></select></div>
             </div>
             <div class="form-actions"><button class="btn-primary" onclick="addEmployee()">Add Employee</button></div>
             <div class="error" id="employee-error"></div>
@@ -943,6 +988,19 @@
   let detailReturnView = 'leads';
   let searchTimer = null;
   let searchTimerForeign = null;
+  let searchTimerMyLeads = null;
+  const ROLE_LABELS = { admin: 'Admin', lead_generation: 'Lead Generation', tele_caller: 'Tele Caller' };
+  function roleLabel(role) { return ROLE_LABELS[role] || role; }
+  function displayName(username) {
+    if (!username) return '';
+    const namePart = username.includes('@') ? username.split('@')[0] : username;
+    return namePart.charAt(0).toUpperCase() + namePart.slice(1);
+  }
+  function canAddClients() { return ['admin', 'lead_generation'].includes(currentUser.role); }
+  function canEditClientCore() { return currentUser.role === 'admin'; }
+  function canManageStatus() { return ['admin', 'tele_caller'].includes(currentUser.role); }
+  function canManageFollowupNotes() { return ['admin', 'tele_caller'].includes(currentUser.role); }
+  function canDeleteClients() { return currentUser.role === 'admin'; }
 
   if (token && currentUser) showApp();
 
@@ -977,9 +1035,16 @@
   async function showApp() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    document.getElementById('whoami').textContent = currentUser.username + ' · ' + currentUser.role;
+    document.getElementById('whoami').textContent = displayName(currentUser.username) + ' · ' + roleLabel(currentUser.role);
+    document.getElementById('whoami').title = currentUser.username;
+    document.getElementById('dashboard-greeting').innerHTML = `Welcome, ${escapeHtml(displayName(currentUser.username))} <span class="wave">👋</span>`;
     document.getElementById('nav-employees').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
     document.getElementById('nav-whatsapp').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+    // Only Admin and Lead Generation can add new clients.
+    document.getElementById('nav-add-client').style.display = canAddClients() ? 'flex' : 'none';
+    document.getElementById('nav-add-foreign-client').style.display = canAddClients() ? 'flex' : 'none';
+    // "My Leads" (auto-assigned clients) is only relevant for Tele Callers.
+    document.getElementById('nav-my-leads').style.display = currentUser.role === 'tele_caller' ? 'flex' : 'none';
     await Promise.all([loadCategories(), loadClients(), loadStats()]);
   }
 
@@ -987,11 +1052,12 @@
     document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
     document.getElementById('view-' + view).classList.add('active');
-    const titles = { dashboard: 'Dashboard', 'add-client': 'Add Indian Client', leads: 'All Indian Leads', 'add-foreign-client': 'Add Foreign Client', 'foreign-leads': 'All Foreign Leads', activity: 'Activity Log', notes: 'Notes', employees: 'Employees', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
+    const titles = { dashboard: 'Dashboard', 'add-client': 'Add Indian Client', leads: 'All Indian Leads', 'add-foreign-client': 'Add Foreign Client', 'foreign-leads': 'All Foreign Leads', 'my-leads': 'My Leads', activity: 'Activity Log', notes: 'Notes', employees: 'Employees', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
     document.getElementById('page-title').textContent = titles[view] || view;
     if (view === 'dashboard') loadStats();
     if (view === 'leads') loadClients();
     if (view === 'foreign-leads') loadForeignClients();
+    if (view === 'my-leads') loadMyLeads();
     if (view === 'activity') loadActivity();
     if (view === 'notes') loadTeamNotes();
     if (view === 'employees') loadEmployees();
@@ -1091,13 +1157,25 @@
   }
 
   async function loadStats() {
-    const [res, fRes] = await Promise.all([apiGet('/api/stats'), apiGet('/api/notes?upcoming=1')]);
+    const scopeParam = currentUser.role === 'tele_caller' ? 'assigned_to=' + encodeURIComponent(currentUser.username) : '';
+    const statsUrl = '/api/stats' + (scopeParam ? '?' + scopeParam : '');
+    const notesUrl = '/api/notes?upcoming=1' + (scopeParam ? '&' + scopeParam : '');
+    const [res, fRes] = await Promise.all([apiGet(statsUrl), apiGet(notesUrl)]);
     if (!res.ok) return;
     const stats = await res.json();
     document.getElementById('stat-total').textContent = stats.totalClients;
     document.getElementById('stat-followups').textContent = stats.dueFollowUps;
     document.getElementById('stat-india').textContent = stats.regionBreakdown.india;
     document.getElementById('stat-foreign').textContent = stats.regionBreakdown.foreign;
+
+    const incomeCard = document.getElementById('my-income-card');
+    if (stats.myIncome) {
+      incomeCard.style.display = 'block';
+      document.getElementById('income-month').textContent = '₹' + Number(stats.myIncome.currentMonth || 0).toLocaleString('en-IN');
+      document.getElementById('income-lifetime').textContent = '₹' + Number(stats.myIncome.lifetime || 0).toLocaleString('en-IN');
+    } else {
+      incomeCard.style.display = 'none';
+    }
 
     renderDonutCard([
       { label: 'New', value: stats.statusBreakdown.new, color: 'var(--accent-1)' },
@@ -1181,6 +1259,18 @@
     return `<span class="badge status-${c.status || 'new'}">${label}${extra}</span>`;
   }
 
+  function formatAddedOn(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    const dateLabel = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    let ago;
+    if (days <= 0) ago = 'today';
+    else if (days === 1) ago = '1 day ago';
+    else ago = days + ' days ago';
+    return `${dateLabel}<br><span class="added-ago">${ago}</span>`;
+  }
+
   function renderClientRows(clients, tbodyId, emptyId) {
     const body = document.getElementById(tbodyId);
     const empty = document.getElementById(emptyId);
@@ -1192,9 +1282,10 @@
         <td>${escapeHtml(c.phone_number)}</td>
         <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
         <td>${statusBadge(c)}</td>
+        <td class="added-on">${formatAddedOn(c.created_at)}</td>
         <td class="actions" onclick="event.stopPropagation()">
           <button class="link-btn" onclick="event.stopPropagation(); openClientDetail('${c.id}')">View Profile</button>
-          <button class="delete-btn" onclick="deleteClient('${c.id}', '${c.lead_region || 'india'}')">Delete</button>
+          ${canDeleteClients() ? `<button class="delete-btn" onclick="deleteClient('${c.id}', '${c.lead_region || 'india'}')">Delete</button>` : ''}
         </td>
       </tr>`).join('');
   }
@@ -1238,6 +1329,55 @@
       searchId: 'search-box2', categoryId: 'filter-category2', statusId: 'filter-status2',
       region: 'foreign', tbodyId: 'foreign-clients-body', emptyId: 'empty-state2', errId: 'foreign-clients-load-error'
     });
+  }
+
+  function debouncedSearchMyLeads() {
+    clearTimeout(searchTimerMyLeads);
+    searchTimerMyLeads = setTimeout(loadMyLeads, 300);
+  }
+
+  function renderMyLeadsRows(clients) {
+    const body = document.getElementById('my-leads-body');
+    const empty = document.getElementById('empty-state3');
+    if (!clients.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    body.innerHTML = clients.map(c => `
+      <tr class="clickable" onclick="openClientDetail('${c.id}')">
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.phone_number)}</td>
+        <td><span class="badge">${c.lead_region === 'foreign' ? 'Foreign' : 'India'}</span></td>
+        <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
+        <td>${statusBadge(c)}</td>
+        <td class="added-on">${formatAddedOn(c.created_at)}</td>
+        <td class="actions" onclick="event.stopPropagation()">
+          <button class="link-btn" onclick="event.stopPropagation(); openClientDetail('${c.id}')">View Profile</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function loadMyLeads() {
+    const search = document.getElementById('search-box3').value.trim();
+    const statusVal = document.getElementById('filter-status3').value;
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (statusVal) params.set('status', statusVal);
+    params.set('assigned_to', currentUser.username);
+    const body = document.getElementById('my-leads-body');
+    const empty = document.getElementById('empty-state3');
+    const errEl = document.getElementById('my-leads-load-error');
+    const res = await apiGet('/api/clients?' + params.toString());
+    if (!res.ok) {
+      let msg = 'Leads could not be loaded (server error).';
+      try { const j = await res.json(); if (j && j.error) msg += ' — ' + j.error; } catch (e) {}
+      body.innerHTML = '';
+      empty.style.display = 'none';
+      errEl.style.display = 'block';
+      errEl.textContent = msg;
+      return;
+    }
+    errEl.style.display = 'none';
+    const clients = await res.json();
+    renderMyLeadsRows(clients);
   }
 
   function editClient(c) {
@@ -1411,13 +1551,23 @@
       escapeHtml(client.phone_number) + ' · ' +
       (client.categories ? escapeHtml(client.categories.name) : 'No category') + ' · ' +
       escapeHtml(client.address || 'No address') +
+      ' · Added ' + escapeHtml(new Date(client.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })) +
       (client.website_url ? ' · <a href="' + escapeHtml(client.website_url) + '" target="_blank" rel="noopener">' + escapeHtml(client.website_url) + '</a>' : '');
     setDetailContactLinks(client.phone_number);
     document.getElementById('detail-note-input').value = '';
     document.getElementById('detail-note-due').value = '';
-    detailReturnView = client.lead_region === 'foreign' ? 'foreign-leads' : 'leads';
-    document.getElementById('detail-back-link').textContent =
-      client.lead_region === 'foreign' ? '← Back to All Foreign Leads' : '← Back to All Indian Leads';
+    const activeView = document.querySelector('.view.active');
+    const cameFrom = activeView ? activeView.id.replace('view-', '') : null;
+    if (cameFrom === 'my-leads') {
+      detailReturnView = 'my-leads';
+      document.getElementById('detail-back-link').textContent = '← Back to My Leads';
+    } else {
+      detailReturnView = client.lead_region === 'foreign' ? 'foreign-leads' : 'leads';
+      document.getElementById('detail-back-link').textContent =
+        client.lead_region === 'foreign' ? '← Back to All Foreign Leads' : '← Back to All Indian Leads';
+    }
+    document.getElementById('detail-edit-btn').style.display = canEditClientCore() ? 'inline-flex' : 'none';
+    document.getElementById('detail-note-add-row').style.display = canManageFollowupNotes() ? 'flex' : 'none';
     renderDetailStatus();
     renderDetailDeal();
     switchView('client-detail');
@@ -1434,10 +1584,11 @@
   function renderDetailStatus() {
     const c = currentDetailClient;
     const status = c.status || 'new';
-    const btn = (s, label) => `<button class="status-btn ${status === s ? 'active' : ''}" data-s="${s}" onclick="setClientStatus('${s}')">${label}</button>`;
+    const canManage = canManageStatus();
+    const btn = (s, label) => `<button class="status-btn ${status === s ? 'active' : ''}" data-s="${s}" ${canManage ? `onclick="setClientStatus('${s}')"` : 'disabled'}>${label}</button>`;
     document.getElementById('detail-status-actions').innerHTML =
       btn('in_progress', 'In Progress') + btn('completed', 'Completed') +
-      `<button class="status-btn decline" onclick="declineClient()">Client declined (30-day pause)</button>`;
+      `<button class="status-btn decline" ${canManage ? 'onclick="declineClient()"' : 'disabled'}>Client declined (30-day pause)</button>`;
     const noteEl = document.getElementById('detail-decline-note');
     if (status === 'declined' && c.declined_until) {
       noteEl.textContent = `Auto-messages paused until ${c.declined_until}. Click "In Progress" or "Completed" above to reactivate.`;
@@ -1631,7 +1782,7 @@
     document.getElementById('employees-body').innerHTML = emps.map(e => `
       <tr>
         <td>${escapeHtml(e.username)}</td>
-        <td><span class="badge ${e.role === 'admin' ? 'role-admin' : ''}">${e.role}</span></td>
+        <td><span class="badge ${e.role === 'admin' ? 'role-admin' : ''}">${roleLabel(e.role)}</span></td>
         <td>${new Date(e.created_at).toLocaleDateString('en-IN')}</td>
         <td><button class="delete-btn" onclick="deleteEmployee('${e.id}')">Remove</button></td>
       </tr>`).join('');
