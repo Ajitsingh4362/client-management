@@ -536,7 +536,9 @@
             <div class="form-grid">
               <div><label>Client Name</label><input type="text" id="f-name" placeholder="e.g. Ramesh Traders" /></div>
               <div><label>Phone Number</label><input type="text" id="f-phone" placeholder="e.g. +91 98765 43210" /></div>
-              <div><label>Category</label><select id="f-category"></select></div>
+              <div><label>Category</label><select id="f-category" onchange="toggleOtherCategory('f-category','f-category-other')"></select>
+                <input type="text" id="f-category-other" placeholder="Category ka naam likhein" style="display:none; margin-top:6px;" />
+              </div>
               <div class="full"><label>Address</label><textarea id="f-address" rows="2" placeholder="Client address"></textarea></div>
             </div>
             <div class="form-actions">
@@ -583,7 +585,9 @@
             <div class="form-grid">
               <div><label>Client Name</label><input type="text" id="f2-name" placeholder="e.g. Acme Wellness Clinic" /></div>
               <div><label>Phone Number (with country code)</label><input type="text" id="f2-phone" placeholder="e.g. 14155552671" /></div>
-              <div><label>Category</label><select id="f2-category"></select></div>
+              <div><label>Category</label><select id="f2-category" onchange="toggleOtherCategory('f2-category','f2-category-other')"></select>
+                <input type="text" id="f2-category-other" placeholder="Category name" style="display:none; margin-top:6px;" />
+              </div>
               <div class="full"><label>Address / Country</label><textarea id="f2-address" rows="2" placeholder="Client address / country"></textarea></div>
             </div>
             <div class="form-actions">
@@ -879,15 +883,39 @@
   }
 
   /* ---------- Categories ---------- */
+  function toggleOtherCategory(selectId, inputId) {
+    const isOther = document.getElementById(selectId).value === '__other__';
+    document.getElementById(inputId).style.display = isOther ? 'block' : 'none';
+    if (!isOther) document.getElementById(inputId).value = '';
+  }
+
+  async function resolveCategoryId(selectId, inputId, errEl) {
+    let categoryId = document.getElementById(selectId).value || null;
+    if (categoryId !== '__other__') return categoryId;
+    const newCatName = document.getElementById(inputId).value.trim();
+    if (!newCatName) { errEl.textContent = 'Category ka naam likhein'; return undefined; }
+    const existing = categories.find(c => c.name.toLowerCase() === newCatName.toLowerCase());
+    if (existing) return existing.id;
+    try {
+      const catRes = await fetch('/api/categories', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ name: newCatName }) });
+      if (!catRes.ok) throw new Error((await catRes.json()).error || 'Category create nahi ho payi');
+      const newCat = await catRes.json();
+      await loadCategories();
+      return newCat.id;
+    } catch (e) { errEl.textContent = e.message; return undefined; }
+  }
+
   async function loadCategories() {
     const res = await apiGet('/api/categories');
     if (!res.ok) return;
     categories = await res.json();
-    const options = categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    const options = categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') +
+      '<option value="__other__">Other</option>';
+    const filterOptions = categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
     document.getElementById('f-category').innerHTML = '<option value="">— Select category —</option>' + options;
-    document.getElementById('filter-category').innerHTML = '<option value="">All categories</option>' + options;
+    document.getElementById('filter-category').innerHTML = '<option value="">All categories</option>' + filterOptions;
     document.getElementById('f2-category').innerHTML = '<option value="">— Select category —</option>' + options;
-    document.getElementById('filter-category2').innerHTML = '<option value="">All categories</option>' + options;
+    document.getElementById('filter-category2').innerHTML = '<option value="">All categories</option>' + filterOptions;
     const hospital = categories.find(c => c.name.toLowerCase() === 'hospital');
     if (hospital && !editingId) document.getElementById('f-category').value = hospital.id;
   }
@@ -1120,6 +1148,8 @@
     document.getElementById('f-address').value = '';
     const hospital = categories.find(c => c.name.toLowerCase() === 'hospital');
     document.getElementById('f-category').value = hospital ? hospital.id : '';
+    document.getElementById('f-category-other').value = '';
+    document.getElementById('f-category-other').style.display = 'none';
     document.getElementById('cancel-edit').style.display = 'none';
     document.getElementById('form-error').textContent = '';
     document.getElementById('form-success').textContent = '';
@@ -1132,6 +1162,8 @@
     document.getElementById('f2-phone').value = '';
     document.getElementById('f2-address').value = '';
     document.getElementById('f2-category').value = '';
+    document.getElementById('f2-category-other').value = '';
+    document.getElementById('f2-category-other').style.display = 'none';
     document.getElementById('cancel-edit2').style.display = 'none';
     document.getElementById('form-error2').textContent = '';
     document.getElementById('form-success2').textContent = '';
@@ -1142,11 +1174,13 @@
     const okEl = document.getElementById('form-success');
     errEl.textContent = ''; okEl.textContent = '';
     const wasEditing = !!editingId;
+    const categoryId = await resolveCategoryId('f-category', 'f-category-other', errEl);
+    if (categoryId === undefined) return;
     const payload = {
       name: document.getElementById('f-name').value.trim(),
       phone_number: document.getElementById('f-phone').value.trim(),
       address: document.getElementById('f-address').value.trim(),
-      category_id: document.getElementById('f-category').value || null,
+      category_id: categoryId,
       lead_region: 'india'
     };
     if (!payload.name || !payload.phone_number) { errEl.textContent = 'Name and phone number are required'; return; }
@@ -1174,11 +1208,13 @@
     const okEl = document.getElementById('form-success2');
     errEl.textContent = ''; okEl.textContent = '';
     const wasEditing = !!editingForeignId;
+    const categoryId2 = await resolveCategoryId('f2-category', 'f2-category-other', errEl);
+    if (categoryId2 === undefined) return;
     const payload = {
       name: document.getElementById('f2-name').value.trim(),
       phone_number: document.getElementById('f2-phone').value.trim(),
       address: document.getElementById('f2-address').value.trim(),
-      category_id: document.getElementById('f2-category').value || null,
+      category_id: categoryId2,
       lead_region: 'foreign'
     };
     if (!payload.name || !payload.phone_number) { errEl.textContent = 'Name and phone number are required'; return; }
