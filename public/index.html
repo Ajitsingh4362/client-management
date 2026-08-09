@@ -274,6 +274,8 @@
   .btn-call:hover { background: #e6f6ec; }
   .btn-whatsapp { color: #1e8f5a !important; border-color: rgba(30,143,90,.35) !important; }
   .btn-whatsapp:hover { background: #e6f6ec; }
+  .btn-script { color: var(--accent-1) !important; border-color: rgba(41,82,227,.35) !important; }
+  .btn-script:hover { background: #eef1ff; }
 
   .note-item { border-bottom: 1px solid var(--border); padding: 10px 0; }
   .note-item:last-child { border-bottom: none; }
@@ -356,6 +358,47 @@
   @media (min-width: 769px) {
     .topbar .mobile-logout { display: none; }
   }
+
+  /* ---------- Call Script Teleprompter ---------- */
+  .script-overlay {
+    position: fixed; inset: 0; z-index: 2000; background: #0b0d14;
+    display: none; flex-direction: column;
+  }
+  .script-overlay.active { display: flex; }
+  .script-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; padding-top: max(14px, calc(env(safe-area-inset-top, 0px) + 10px));
+    border-bottom: 1px solid rgba(255,255,255,.1); flex-shrink: 0;
+  }
+  .script-topbar-title { color: #fff; font-weight: 700; font-size: 15px; }
+  .script-icon-btn {
+    background: rgba(255,255,255,.08); border: none; color: #fff; width: 34px; height: 34px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .script-icon-btn svg { width: 16px; height: 16px; }
+  .script-icon-btn:hover { background: rgba(255,255,255,.16); }
+  .script-text-wrap { flex: 1; overflow-y: auto; scroll-behavior: smooth; padding: 40px 0 50vh; }
+  .script-text {
+    max-width: 640px; margin: 0 auto; padding: 0 24px; color: #f2f3f7;
+    font-size: 21px; line-height: 1.75; font-weight: 500;
+  }
+  .script-text p { margin: 0 0 22px; }
+  .script-text .script-highlight { color: #6ea8ff; font-weight: 700; }
+  .script-controls {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 14px; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid rgba(255,255,255,.1); flex-shrink: 0; flex-wrap: wrap;
+  }
+  .script-ctrl-btn {
+    background: rgba(255,255,255,.08); border: none; color: #fff; min-width: 42px; height: 42px;
+    border-radius: 21px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    font-size: 13px; font-weight: 700; padding: 0 12px;
+  }
+  .script-ctrl-btn svg { width: 18px; height: 18px; }
+  .script-ctrl-btn:hover { background: rgba(255,255,255,.16); }
+  .script-play-btn { background: var(--accent-1); width: 50px; height: 50px; border-radius: 50%; }
+  .script-play-btn:hover { background: var(--primary-dark); }
+  .script-play-btn svg { width: 20px; height: 20px; }
 </style>
 </head>
 <body>
@@ -679,6 +722,10 @@
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.2-.1-.4-.1-.6.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1-1.3-.6-2.2-1.1-3.1-2.5-.2-.3 0-.5.2-.7.2-.2.4-.5.5-.7.1-.2.1-.4 0-.5-.1-.1-.6-1.4-.8-1.9-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.1s.9 2.5 1 2.6c.1.2 1.7 2.6 4.1 3.6 2 .8 2 .5 2.4.5.4 0 1.3-.5 1.4-1 .2-.5.2-1 .1-1.1-.1-.1-.2-.2-.4-.3z"/><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l4.9-1.3A10 10 0 1 0 12 2zm5.5 14.5c-.6.6-1.8 1.3-2.8 1.3-.9 0-2.1-.4-3.7-1.1-2.7-1.1-4.6-3.6-4.9-4-.3-.4-1.4-1.9-1.4-3.6s.9-2.5 1.2-2.9c.3-.3.7-.4 1-.4h.7c.2 0 .5 0 .7.5.3.6.9 2.2 1 2.3.1.2.1.4 0 .6-.1.2-.1.3-.3.5-.1.2-.3.3-.4.5-.1.2-.3.4-.1.7.5.9 1.1 1.6 1.9 2.2.9.7 1.6 1 1.9 1.1.2.1.4.1.5-.1.2-.2.7-.8.9-1.1.2-.2.4-.2.6-.1.2.1 1.5.7 1.8.9.3.1.5.2.5.4.1.2.1.7-.5 1.3z"/></svg>
                   <span>WhatsApp</span>
                 </a>
+                <button class="btn-secondary btn-script" onclick="openScript()" title="Open call script">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+                  <span>Script</span>
+                </button>
                 <button class="btn-secondary" onclick="editFromDetail()">Edit</button>
               </div>
             </div>
@@ -849,6 +896,35 @@
         </section>
       </main>
     </div>
+  </div>
+</div>
+
+<!-- CALL SCRIPT TELEPROMPTER -->
+<div id="script-overlay" class="script-overlay">
+  <div class="script-topbar">
+    <div class="script-topbar-title">Call Script</div>
+    <button class="script-icon-btn" onclick="closeScript()" title="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="script-text-wrap" id="script-text-wrap">
+    <div class="script-text" id="script-text"></div>
+  </div>
+  <div class="script-controls">
+    <button class="script-ctrl-btn" onclick="scriptFontStep(-1)" title="Smaller text">A-</button>
+    <button class="script-ctrl-btn" onclick="scriptFontStep(1)" title="Bigger text">A+</button>
+    <button class="script-ctrl-btn" onclick="scriptSpeedStep(-1)" title="Slower">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 19V5M11 5 5 11M11 5l6 6"/></svg>
+    </button>
+    <button class="script-ctrl-btn script-play-btn" id="script-play-btn" onclick="toggleScriptScroll()" title="Play / Pause auto-scroll">
+      <svg viewBox="0 0 24 24" fill="currentColor" id="script-play-icon"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <button class="script-ctrl-btn" onclick="scriptSpeedStep(1)" title="Faster">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 5v14M13 19l6-6M13 19l-6-6"/></svg>
+    </button>
+    <button class="script-ctrl-btn" onclick="scriptRestart()" title="Restart from top">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 5v5h5"/></svg>
+    </button>
   </div>
 </div>
 
@@ -1862,6 +1938,85 @@
       const parsed = parseMapsRawData(text);
       fillFormFromParsed(prefix, parsed);
     }, 0);
+  }
+
+  /* ---------- Call Script Teleprompter ---------- */
+  const scriptState = { fontSize: 21, speedLevel: 4, scrolling: false, timer: null };
+
+  function escapeForScript(s) { return escapeHtml(s || ''); }
+
+  function buildScriptParagraphs(client) {
+    const name = client.name || 'aap';
+    const category = (client.categories && client.categories.name) ? client.categories.name : 'business';
+    const n = '<span class="script-highlight">' + escapeForScript(name) + '</span>';
+    const c = '<span class="script-highlight">' + escapeForScript(category) + '</span>';
+
+    return [
+      `Namaskar! Main Ajit baat kar raha hoon Zentrycs Technology se.`,
+      `Kya meri baat ${n} se ho rahi hai? Aapka jo business hai — ${c} — usi ke sambandh mein baat karna chahta tha, do minute ka time milega?`,
+      `Sir/Madam, kya aap apne business ke liye ek professional website banana chahte hain? Jisse aapke business ka growth 10x tak ho sake.`,
+      `Aaj ke time mein online presence hona bahut zaroori ho gaya hai, kyunki zyada tar log kisi bhi ${c} ko pehle Google ya social media par hi search karte hain. Agar aapka business online nahi hai, to bahut saare naye customers/patients aap miss kar rahe ho.`,
+      `Hum aapko provide karte hain — <b>Website + Admin Panel</b>, dono ek saath, ek hi package mein.`,
+      `<b>Website mein aapko ye sab milega:</b>`,
+      `— Aapke business (${c}) ke hisaab se professional aur modern design<br>— Mobile, tablet, laptop — har device par perfectly chalega<br>— Fast loading, taaki customer wait na kare<br>— Google search mein aana shuru hoga jab log "${category} near me" search karenge (SEO)<br>— Google Maps location seedha website par<br>— Call button aur WhatsApp button seedha website par — customer ek click mein contact kar sake<br>— Photos/gallery section apni facility dikhane ke liye<br>— About Us, Services, Doctors/Staff ki poori list<br>— Customer/patient reviews aur ratings section — jisse naye logon ka trust badhta hai<br>— Facebook, Instagram jaise social media se link<br>— Secure (https) aur trusted domain + hosting, sab hum setup karte hain`,
+      `<b>Aur sath mein ek Admin Panel bhi milega, jisse aap apna pura business khud manage kar sakte hain:</b>`,
+      `— <b>Patient/Customer Management</b> — sabhi patients ka record ek jagah, kabhi kho nahi hoga<br>— <b>Online Appointment Booking</b> — patient khud apna time slot book kar sakta hai, aapko baar baar call karke time fix nahi karna padega<br>— <b>Online Confirmation</b> — booking hone ke baad patient ko automatic confirmation message chala jayega<br>— <b>Automatic Follow-up Messages</b> — patient ko WhatsApp/SMS par khud follow-up reminder chala jayega, taaki wo dobara zaroor aaye<br>— <b>Payment &amp; Billing Tracking</b> — kitna payment aaya, kitna baaki hai, sab ek jagah dikh jayega<br>— <b>Reports &amp; Analytics</b> — kitne naye leads aaye, business kaise grow kar raha hai, sab graph mein dikh jayega<br>— <b>Staff Login</b> — aapke employees ke liye alag-alag login, sab kaam trackable<br>— <b>Invoice/Quotation</b> — ek click mein professional invoice ya quotation bana sakte hain`,
+      `Matlab sir/madam, ek baar setup hone ke baad, aapka pura ${c} online chalega — naye customers/patients bhi aayenge, aur jo already aapke pass hain unko manage karna bhi bahut aasan ho jayega.`,
+      `Agar aapko interested lage, to main aapko iska ek live demo dikha sakta hoon — aap khud dekh lenge ki ye kaise kaam karta hai, bilkul free mein.`,
+      `Toh sir/madam, kya main aapke liye ek demo schedule kar doon?`,
+    ];
+  }
+
+  function openScript() {
+    if (!currentDetailClient) return;
+    const paras = buildScriptParagraphs(currentDetailClient);
+    document.getElementById('script-text').innerHTML = paras.map(p => `<p>${p}</p>`).join('');
+    document.getElementById('script-text').style.fontSize = scriptState.fontSize + 'px';
+    document.getElementById('script-overlay').classList.add('active');
+    document.getElementById('script-text-wrap').scrollTop = 0;
+    stopScriptScroll();
+  }
+
+  function closeScript() {
+    document.getElementById('script-overlay').classList.remove('active');
+    stopScriptScroll();
+  }
+
+  function scriptFontStep(delta) {
+    scriptState.fontSize = Math.max(14, Math.min(34, scriptState.fontSize + delta * 2));
+    document.getElementById('script-text').style.fontSize = scriptState.fontSize + 'px';
+  }
+
+  function scriptSpeedStep(delta) {
+    scriptState.speedLevel = Math.max(1, Math.min(10, scriptState.speedLevel + delta));
+  }
+
+  function scriptRestart() {
+    document.getElementById('script-text-wrap').scrollTop = 0;
+  }
+
+  function toggleScriptScroll() {
+    if (scriptState.scrolling) stopScriptScroll();
+    else startScriptScroll();
+  }
+
+  function startScriptScroll() {
+    const wrap = document.getElementById('script-text-wrap');
+    scriptState.scrolling = true;
+    document.getElementById('script-play-icon').innerHTML = '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>';
+    clearInterval(scriptState.timer);
+    scriptState.timer = setInterval(() => {
+      wrap.scrollTop += scriptState.speedLevel * 0.5;
+      if (wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 2) stopScriptScroll();
+    }, 30);
+  }
+
+  function stopScriptScroll() {
+    scriptState.scrolling = false;
+    clearInterval(scriptState.timer);
+    scriptState.timer = null;
+    const icon = document.getElementById('script-play-icon');
+    if (icon) icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
   }
 
   /* ---------- PWA: service worker registration ---------- */
