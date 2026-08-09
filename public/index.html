@@ -303,6 +303,7 @@
       text-align: center; margin-bottom: 0; white-space: nowrap; border-radius: 8px;
     }
     .sidebar .nav-item .dot { display: none; }
+    .sidebar .nav-item-desktop-only { display: none; }
 
     .content { padding-bottom: 64px; }
     .topbar { padding: 14px 16px; }
@@ -443,7 +444,7 @@
         <div class="nav-item" data-view="leads" onclick="switchView('leads')"><span class="dot"></span> All Indian Leads</div>
         <div class="nav-item" data-view="add-foreign-client" onclick="switchView('add-foreign-client')"><span class="dot"></span> Add Foreign Client</div>
         <div class="nav-item" data-view="foreign-leads" onclick="switchView('foreign-leads')"><span class="dot"></span> All Foreign Leads</div>
-        <div class="nav-item" data-view="activity" onclick="switchView('activity')"><span class="dot"></span> Activity Log</div>
+        <div class="nav-item nav-item-desktop-only" data-view="activity" onclick="switchView('activity')"><span class="dot"></span> Activity Log</div>
         <div class="nav-item" data-view="notes" onclick="switchView('notes')"><span class="dot"></span> Notes</div>
         <div class="nav-item" data-view="employees" id="nav-employees" onclick="switchView('employees')" style="display:none;"><span class="dot"></span> Employees</div>
         <div class="nav-item" data-view="whatsapp" id="nav-whatsapp" onclick="switchView('whatsapp')" style="display:none;"><span class="dot"></span> WhatsApp</div>
