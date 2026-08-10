@@ -566,6 +566,25 @@
             </div>
           </div>
 
+          <div class="card" id="my-time-card">
+            <h2>My Time on App Today</h2>
+            <div class="stat-cards" style="margin-bottom:0;">
+              <div class="stat-card">
+                <div class="n" id="my-time-today">0m</div><div class="l">Today</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="team-time-card" style="display:none;">
+            <h2>Employee Activity Today</h2>
+            <div class="table-wrap">
+            <table>
+              <thead><tr><th>Employee</th><th>Role</th><th>Time on App</th><th>Last Active</th></tr></thead>
+              <tbody id="team-time-body"></tbody>
+            </table>
+            </div>
+          </div>
+
           <div class="card">
             <h2>Client Pipeline</h2>
             <div class="chart-row">
@@ -1068,6 +1087,7 @@
     sessionStorage.removeItem('admin_token');
     sessionStorage.removeItem('admin_user');
     token = ''; currentUser = null;
+    if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
     document.getElementById('app').style.display = 'none';
     document.getElementById('login-screen').style.display = 'block';
   }
@@ -1087,7 +1107,53 @@
     document.getElementById('nav-add-foreign-client').style.display = canAddClients() ? 'flex' : 'none';
     // "My Leads" (auto-assigned clients) is only relevant for Tele Callers.
     document.getElementById('nav-my-leads').style.display = currentUser.role === 'tele_caller' ? 'flex' : 'none';
-    await Promise.all([loadCategories(), loadClients(), loadStats()]);
+    await Promise.all([loadCategories(), loadClients(), loadStats(), loadTimeOnApp()]);
+    startHeartbeat();
+  }
+
+  /* ---------- Time on App tracking ---------- */
+  let heartbeatTimer = null;
+
+  function formatDuration(totalSeconds) {
+    const s = Number(totalSeconds) || 0;
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  }
+
+  async function sendHeartbeat() {
+    try {
+      await fetch('/api/heartbeat', { method: 'POST', headers: authHeaders() });
+    } catch (e) { /* ignore network blips */ }
+  }
+
+  function startHeartbeat() {
+    if (heartbeatTimer) return;
+    sendHeartbeat();
+    heartbeatTimer = setInterval(sendHeartbeat, 60000);
+  }
+
+  async function loadTimeOnApp() {
+    const res = await apiGet('/api/employee-activity');
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (currentUser.role === 'admin') {
+      document.getElementById('team-time-card').style.display = 'block';
+      document.getElementById('team-time-body').innerHTML = data.employees.map(e => `
+        <tr>
+          <td>${escapeHtml(displayName(e.username))}</td>
+          <td><span class="badge ${e.role === 'admin' ? 'role-admin' : ''}">${roleLabel(e.role)}</span></td>
+          <td>${formatDuration(e.total_seconds)}</td>
+          <td>${e.last_heartbeat ? new Date(e.last_heartbeat).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+        </tr>`).join('');
+      // Admin's own time isn't in the employees table loop above (admin
+      // logs in via env vars, not the employees table) — show it separately.
+      document.getElementById('my-time-today').textContent = formatDuration(data.employees.find(e => e.username === currentUser.username)?.total_seconds || 0);
+    } else {
+      document.getElementById('my-time-today').textContent = formatDuration(data.total_seconds);
+    }
   }
 
   function switchView(view) {
@@ -1096,7 +1162,7 @@
     document.getElementById('view-' + view).classList.add('active');
     const titles = { dashboard: 'Dashboard', 'add-client': 'Add Indian Client', leads: 'All Indian Leads', 'add-foreign-client': 'Add Foreign Client', 'foreign-leads': 'All Foreign Leads', 'my-leads': 'My Leads', activity: 'Activity Log', notes: 'Notes', employees: 'Employees', 'task-distribution': 'Task Distribution', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
     document.getElementById('page-title').textContent = titles[view] || view;
-    if (view === 'dashboard') loadStats();
+    if (view === 'dashboard') { loadStats(); loadTimeOnApp(); }
     if (view === 'leads') loadClients();
     if (view === 'foreign-leads') loadForeignClients();
     if (view === 'my-leads') loadMyLeads();
