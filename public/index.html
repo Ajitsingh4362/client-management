@@ -1896,7 +1896,7 @@
         <td>${escapeHtml(e.username)}</td>
         <td><span class="badge ${e.role === 'admin' ? 'role-admin' : ''}">${roleLabel(e.role)}</span></td>
         <td>${new Date(e.created_at).toLocaleDateString('en-IN')}</td>
-        <td><button class="delete-btn" onclick="deleteEmployee('${e.id}')">Remove</button></td>
+        <td><button class="delete-btn" onclick="deleteEmployee('${e.id}', '${escapeHtml(e.username)}')">Remove</button></td>
       </tr>`).join('');
   }
 
@@ -2019,9 +2019,43 @@
     } catch (e) { errEl.textContent = e.message; }
   }
 
-  async function deleteEmployee(id) {
-    if (!confirm('Remove this employee?')) return;
-    await fetch('/api/employees?id=' + id, { method: 'DELETE', headers: authHeaders() });
+  async function deleteEmployee(id, username) {
+    // If this employee has leads assigned to them, find out first so we
+    // don't silently orphan those leads on delete.
+    const res = await apiGet('/api/clients?assigned_to=' + encodeURIComponent(username));
+    const theirLeads = res.ok ? await res.json() : [];
+
+    let reassignTo = '';
+    if (theirLeads.length > 0) {
+      const empRes = await apiGet('/api/employees');
+      const emps = empRes.ok ? await empRes.json() : [];
+      const otherTeleCallers = emps.filter(e => e.role === 'tele_caller' && e.username !== username);
+
+      if (otherTeleCallers.length > 0) {
+        const names = otherTeleCallers.map(e => displayName(e.username)).join(', ');
+        const typed = prompt(
+          `${displayName(username)} has ${theirLeads.length} lead(s) assigned.\n\n` +
+          `Type one of these names to move all their leads there: ${names}\n\n` +
+          `Or leave blank to just unassign the leads (they'll show up as "Unassigned" in Task Distribution).`
+        );
+        if (typed === null) return; // cancelled
+        if (typed.trim()) {
+          const match = otherTeleCallers.find(e => displayName(e.username).toLowerCase() === typed.trim().toLowerCase());
+          if (!match) { alert('No Tele Caller matches that name — cancelled. Try again.'); return; }
+          reassignTo = match.username;
+        }
+      } else {
+        if (!confirm(`${displayName(username)} has ${theirLeads.length} lead(s) assigned, and there's no other Tele Caller to move them to. Remove anyway? Their leads will show as "Unassigned".`)) return;
+      }
+    } else {
+      if (!confirm('Remove this employee?')) return;
+    }
+
+    const delRes = await fetch('/api/employees?id=' + id, {
+      method: 'DELETE', headers: authHeaders(),
+      body: JSON.stringify({ reassign_to: reassignTo || undefined })
+    });
+    if (!delRes.ok) { alert((await delRes.json()).error || 'Remove failed'); return; }
     await loadEmployees();
   }
 

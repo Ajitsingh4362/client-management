@@ -41,12 +41,40 @@ module.exports = async (req, res) => {
 
     if (req.method === 'DELETE') {
       const { id } = req.query;
+      const { reassign_to } = req.body || {};
       if (!id) return res.status(400).json({ error: 'id is required' });
       const { data: existing } = await supabase.from('employees').select('username').eq('id', id).single();
+      if (!existing) return res.status(404).json({ error: 'Employee not found' });
+
+      // Their leads shouldn't silently point at a username that no longer
+      // exists (invisible, uncounted anywhere) — either hand them to
+      // another Tele Caller, or clear the assignment so they show up in
+      // the "Unassigned" pool on Task Distribution for the admin to sort out.
+      const { data: theirLeads } = await supabase
+        .from('clients').select('id').eq('assigned_to', existing.username);
+      const leadCount = theirLeads ? theirLeads.length : 0;
+
+      if (leadCount > 0) {
+        if (reassign_to) {
+          const { data: target } = await supabase
+            .from('employees').select('username, role').eq('username', reassign_to).maybeSingle();
+          if (!target || target.role !== 'tele_caller') {
+            return res.status(400).json({ error: `${reassign_to} is not a Tele Caller` });
+          }
+          await supabase.from('clients').update({ assigned_to: reassign_to }).eq('assigned_to', existing.username);
+        } else {
+          await supabase.from('clients').update({ assigned_to: null }).eq('assigned_to', existing.username);
+        }
+      }
+
       const { error } = await supabase.from('employees').delete().eq('id', id);
       if (error) throw error;
-      await logActivity(user.username, 'removed employee', 'employee', existing ? existing.username : id);
-      return res.status(204).end();
+      await logActivity(
+        user.username,
+        `removed employee${leadCount > 0 ? ` (${leadCount} lead(s) ${reassign_to ? `moved to ${reassign_to}` : 'unassigned'})` : ''}`,
+        'employee', existing.username
+      );
+      return res.status(200).json({ ok: true, leadsAffected: leadCount });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
