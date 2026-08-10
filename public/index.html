@@ -329,6 +329,7 @@
     .sidebar .nav-item .dot { display: none; }
     .sidebar .nav-item-desktop-only { display: none; }
     #nav-employees { display: none !important; }
+    #nav-task-distribution { display: none !important; }
 
     .content { padding-bottom: 84px; }
     .topbar { padding: 14px 16px; }
@@ -514,6 +515,7 @@
         <div class="nav-item nav-item-desktop-only" data-view="activity" onclick="switchView('activity')"><span class="dot"></span> Activity Log</div>
         <div class="nav-item" data-view="notes" onclick="switchView('notes')"><span class="dot"></span> Notes</div>
         <div class="nav-item" data-view="employees" id="nav-employees" onclick="switchView('employees')" style="display:none;"><span class="dot"></span> Employees</div>
+        <div class="nav-item" data-view="task-distribution" id="nav-task-distribution" onclick="switchView('task-distribution')" style="display:none;"><span class="dot"></span> Task Distribution</div>
         <div class="nav-item" data-view="whatsapp" id="nav-whatsapp" onclick="switchView('whatsapp')" style="display:none;"><span class="dot"></span> WhatsApp</div>
       </nav>
       <div class="footer">
@@ -886,6 +888,42 @@
           </div>
         </section>
 
+        <!-- TASK DISTRIBUTION (admin only) -->
+        <section class="view" id="view-task-distribution">
+          <div class="card">
+            <h2>Load by Tele Caller</h2>
+            <div id="td-load-summary"></div>
+          </div>
+
+          <div class="card">
+            <h2>Move / Swipe Leads</h2>
+            <p style="color:var(--muted); font-size:13px; margin-top:-6px;">Moves the oldest leads first from one Tele Caller to another.</p>
+            <div class="form-grid">
+              <div><label>From</label><select id="td-from"></select></div>
+              <div><label>To</label><select id="td-to"></select></div>
+              <div><label>How many leads</label><input type="number" id="td-count" min="1" value="1" /></div>
+            </div>
+            <div class="form-actions"><button class="btn-primary" onclick="swipeLeads()">Move Leads</button></div>
+            <div class="error" id="td-swipe-error"></div>
+            <div id="td-swipe-success" style="color:#1e8f5a; font-size:13px; margin-top:6px;"></div>
+          </div>
+
+          <div class="card">
+            <h2>All Leads — Reassign</h2>
+            <div class="toolbar">
+              <input type="text" id="td-search" placeholder="Search by name or phone..." oninput="debouncedTdSearch()" />
+              <select id="td-filter-assigned" onchange="loadTaskDistributionList()"></select>
+            </div>
+            <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Phone</th><th>Region</th><th>Status</th><th>Currently Assigned</th><th>Reassign To</th></tr></thead>
+              <tbody id="td-leads-body"></tbody>
+            </table>
+            </div>
+            <div class="empty" id="td-empty-state" style="display:none;">No leads found.</div>
+          </div>
+        </section>
+
         <!-- WHATSAPP (admin only) -->
         <section class="view" id="view-whatsapp">
           <div class="card" id="wa-status-card">
@@ -1041,6 +1079,7 @@
     document.getElementById('whoami').title = currentUser.username;
     document.getElementById('dashboard-greeting').innerHTML = `Welcome, ${escapeHtml(displayName(currentUser.username))} <span class="wave">👋</span>`;
     document.getElementById('nav-employees').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+    document.getElementById('nav-task-distribution').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
     document.body.classList.toggle('role-admin', currentUser.role === 'admin');
     document.getElementById('nav-whatsapp').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
     // Only Admin and Lead Generation can add new clients.
@@ -1055,7 +1094,7 @@
     document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
     document.getElementById('view-' + view).classList.add('active');
-    const titles = { dashboard: 'Dashboard', 'add-client': 'Add Indian Client', leads: 'All Indian Leads', 'add-foreign-client': 'Add Foreign Client', 'foreign-leads': 'All Foreign Leads', 'my-leads': 'My Leads', activity: 'Activity Log', notes: 'Notes', employees: 'Employees', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
+    const titles = { dashboard: 'Dashboard', 'add-client': 'Add Indian Client', leads: 'All Indian Leads', 'add-foreign-client': 'Add Foreign Client', 'foreign-leads': 'All Foreign Leads', 'my-leads': 'My Leads', activity: 'Activity Log', notes: 'Notes', employees: 'Employees', 'task-distribution': 'Task Distribution', whatsapp: 'WhatsApp', 'client-detail': 'Client Details' };
     document.getElementById('page-title').textContent = titles[view] || view;
     if (view === 'dashboard') loadStats();
     if (view === 'leads') loadClients();
@@ -1064,6 +1103,7 @@
     if (view === 'activity') loadActivity();
     if (view === 'notes') loadTeamNotes();
     if (view === 'employees') loadEmployees();
+    if (view === 'task-distribution') loadTaskDistribution();
     if (view === 'whatsapp') { waCheckStatus(); waLoadClientsForSelect(); loadTemplate(); } else { clearInterval(waPollTimer); }
   }
 
@@ -1792,6 +1832,109 @@
         <td>${new Date(e.created_at).toLocaleDateString('en-IN')}</td>
         <td><button class="delete-btn" onclick="deleteEmployee('${e.id}')">Remove</button></td>
       </tr>`).join('');
+  }
+
+  /* ---------- Task Distribution ---------- */
+  let tdTeleCallers = [];
+  let tdSearchTimer = null;
+
+  function debouncedTdSearch() {
+    clearTimeout(tdSearchTimer);
+    tdSearchTimer = setTimeout(loadTaskDistributionList, 300);
+  }
+
+  async function loadTaskDistribution() {
+    const empRes = await apiGet('/api/employees');
+    const emps = empRes.ok ? await empRes.json() : [];
+    tdTeleCallers = emps.filter(e => e.role === 'tele_caller');
+
+    // Load counts
+    const statsRes = await apiGet('/api/clients');
+    const allClients = statsRes.ok ? await statsRes.json() : [];
+    const counts = {};
+    tdTeleCallers.forEach(t => { counts[t.username] = 0; });
+    let unassigned = 0;
+    allClients.forEach(c => {
+      if (c.assigned_to && counts[c.assigned_to] !== undefined) counts[c.assigned_to]++;
+      else if (!c.assigned_to) unassigned++;
+    });
+
+    document.getElementById('td-load-summary').innerHTML = tdTeleCallers.map(t => `
+      <div class="breakdown-row">
+        <div class="name">${escapeHtml(displayName(t.username))}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${allClients.length ? (counts[t.username] / allClients.length) * 100 : 0}%"></div></div>
+        <div class="count">${counts[t.username]}</div>
+      </div>`).join('') +
+      (unassigned > 0 ? `<div class="breakdown-row"><div class="name">Unassigned</div><div class="bar-track"><div class="bar-fill" style="background:#9ca3af; width:${(unassigned / allClients.length) * 100}%"></div></div><div class="count">${unassigned}</div></div>` : '');
+
+    const options = tdTeleCallers.map(t => `<option value="${t.username}">${escapeHtml(displayName(t.username))}</option>`).join('');
+    document.getElementById('td-from').innerHTML = options;
+    document.getElementById('td-to').innerHTML = options;
+    document.getElementById('td-filter-assigned').innerHTML = '<option value="">All Tele Callers</option>' + options + '<option value="__unassigned__">Unassigned</option>';
+
+    await loadTaskDistributionList();
+  }
+
+  async function loadTaskDistributionList() {
+    const search = document.getElementById('td-search').value.trim();
+    const filterAssigned = document.getElementById('td-filter-assigned').value;
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    const res = await apiGet('/api/clients?' + params.toString());
+    let clients = res.ok ? await res.json() : [];
+
+    if (filterAssigned === '__unassigned__') clients = clients.filter(c => !c.assigned_to);
+    else if (filterAssigned) clients = clients.filter(c => c.assigned_to === filterAssigned);
+
+    const body = document.getElementById('td-leads-body');
+    const empty = document.getElementById('td-empty-state');
+    if (!clients.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    const options = (current) => '<option value="">— Unassigned —</option>' +
+      tdTeleCallers.map(t => `<option value="${t.username}" ${t.username === current ? 'selected' : ''}>${escapeHtml(displayName(t.username))}</option>`).join('');
+
+    body.innerHTML = clients.map(c => `
+      <tr>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.phone_number)}</td>
+        <td>${c.lead_region === 'foreign' ? 'Foreign' : 'India'}</td>
+        <td>${statusBadge(c)}</td>
+        <td>${c.assigned_to ? escapeHtml(displayName(c.assigned_to)) : '—'}</td>
+        <td><select onchange="reassignLead('${c.id}', this.value)">${options(c.assigned_to)}</select></td>
+      </tr>`).join('');
+  }
+
+  async function reassignLead(clientId, newAssignee) {
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'PUT', headers: authHeaders(),
+        body: JSON.stringify({ id: clientId, assigned_to: newAssignee || null })
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Reassign failed');
+      await loadTaskDistribution();
+    } catch (e) { alert(e.message); }
+  }
+
+  async function swipeLeads() {
+    const errEl = document.getElementById('td-swipe-error');
+    const okEl = document.getElementById('td-swipe-success');
+    errEl.textContent = ''; okEl.textContent = '';
+    const from = document.getElementById('td-from').value;
+    const to = document.getElementById('td-to').value;
+    const count = document.getElementById('td-count').value;
+    if (!from || !to) { errEl.textContent = 'Select both From and To'; return; }
+    if (from === to) { errEl.textContent = 'From and To cannot be the same person'; return; }
+    try {
+      const res = await fetch('/api/reassign-leads', {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ from, to, count })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Move failed');
+      okEl.textContent = data.moved > 0 ? `Moved ${data.moved} lead(s) from ${displayName(from)} to ${displayName(to)}.` : 'No leads found to move.';
+      await loadTaskDistribution();
+    } catch (e) { errEl.textContent = e.message; }
   }
 
   async function addEmployee() {

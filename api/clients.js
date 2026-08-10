@@ -113,7 +113,8 @@ module.exports = async (req, res) => {
     if (req.method === 'PUT') {
       const {
         id, name, phone_number, address, category_id, status, decline,
-        deal_status, deal_amount, deal_deadline, payment_status, amount_paid, progress_percent, website_url
+        deal_status, deal_amount, deal_deadline, payment_status, amount_paid, progress_percent, website_url,
+        assigned_to
       } = req.body || {};
       if (!id) return res.status(400).json({ error: 'id is required' });
 
@@ -121,10 +122,12 @@ module.exports = async (req, res) => {
       // - Core details (name/phone/address/category) -> Admin only
       // - Pipeline status / decline -> Admin, Tele Caller
       // - Deal & payment fields -> Admin, Tele Caller, Lead Generation
+      // - Lead assignment (Task Distribution) -> Admin only
       const editingCoreFields = name !== undefined || phone_number !== undefined || address !== undefined || category_id !== undefined;
       const editingStatusFields = decline || status !== undefined;
       const editingDealFields = deal_status !== undefined || deal_amount !== undefined || deal_deadline !== undefined
         || payment_status !== undefined || amount_paid !== undefined || progress_percent !== undefined || website_url !== undefined;
+      const editingAssignment = assigned_to !== undefined;
 
       if (editingCoreFields && user.role !== 'admin') {
         return res.status(403).json({ error: 'You do not have permission to edit client details' });
@@ -134,6 +137,9 @@ module.exports = async (req, res) => {
       }
       if (editingDealFields && !['admin', 'tele_caller', 'lead_generation'].includes(user.role)) {
         return res.status(403).json({ error: 'You do not have permission to edit deal/payment details' });
+      }
+      if (editingAssignment && user.role !== 'admin') {
+        return res.status(403).json({ error: 'You do not have permission to reassign leads' });
       }
 
       const update = {};
@@ -207,6 +213,10 @@ module.exports = async (req, res) => {
         update.progress_percent = p;
       }
 
+      if (assigned_to !== undefined) {
+        update.assigned_to = assigned_to || null;
+      }
+
       const { data, error } = await supabase
         .from('clients')
         .update(update)
@@ -224,6 +234,8 @@ module.exports = async (req, res) => {
         await logActivity(user.username, 'updated deal amount/deadline/website', 'client', data[0] ? data[0].name : id);
       } else if (payment_status !== undefined || amount_paid !== undefined || progress_percent !== undefined) {
         await logActivity(user.username, 'updated deal/progress', 'client', data[0] ? data[0].name : id);
+      } else if (assigned_to !== undefined) {
+        await logActivity(user.username, `reassigned to ${assigned_to || 'Unassigned'}`, 'client', data[0] ? data[0].name : id);
       } else {
         await logActivity(user.username, 'updated client', 'client', name);
       }
