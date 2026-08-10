@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
-const { requireAuth } = require('./lib/auth');
+const { requireAuth, signToken } = require('./lib/auth');
 const { logActivity } = require('./lib/activity');
+const { getSetting, DEFAULT_TEMPLATE, DEFAULT_TEMPLATE_FOREIGN } = require('./lib/settings');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -38,6 +39,41 @@ async function pickTeleCallerForAssignment() {
     }
   }
   return chosen;
+}
+
+// Same placeholder substitution as api/auto-notify.js, kept in sync.
+function fillTemplate(template, client) {
+  return template
+    .replace(/\{name\}/g, client.name || '')
+    .replace(/\{business\}/g, (client.categories && client.categories.name) || 'your business');
+}
+
+// Fires the very first WhatsApp message the moment a lead is created,
+// instead of waiting for the once-a-day auto-notify cron to pick it up.
+// Fire-and-forget on purpose: if the notifier service is down/slow, that
+// should never block or fail the "add client" request — the daily cron
+// will still catch it later since last_message_at won't get set here.
+async function sendFirstMessage(client) {
+  const notifierUrl = process.env.WHATSAPP_NOTIFIER_URL;
+  if (!notifierUrl || !client.phone_number) return;
+  try {
+    const [template, templateForeign] = await Promise.all([
+      getSetting('auto_message_template', DEFAULT_TEMPLATE),
+      getSetting('auto_message_template_foreign', DEFAULT_TEMPLATE_FOREIGN),
+    ]);
+    const message = fillTemplate(client.lead_region === 'foreign' ? templateForeign : template, client);
+    const resp = await fetch(`${notifierUrl}/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': signToken('auto-notify', 'admin') },
+      body: JSON.stringify({ number: client.phone_number, message, region: client.lead_region }),
+    });
+    if (resp.ok) {
+      await supabase.from('clients').update({ last_message_at: new Date().toISOString() }).eq('id', client.id);
+    }
+  } catch (e) {
+    // Swallow errors — the daily cron (api/auto-notify.js) will catch this
+    // client next run since last_message_at was never set.
+  }
 }
 
 module.exports = async (req, res) => {
@@ -100,13 +136,14 @@ module.exports = async (req, res) => {
       const { data, error } = await supabase
         .from('clients')
         .insert([{ name, phone_number, address, category_id: category_id || null, lead_region: region, assigned_to }])
-        .select();
+        .select('*, categories(name)');
       if (error) throw error;
       await logActivity(
         user.username,
         `created ${region} client${assigned_to ? ` (auto-assigned to ${assigned_to})` : ''}`,
         'client', name
       );
+      await sendFirstMessage(data[0]);
       return res.status(201).json(data[0]);
     }
 
