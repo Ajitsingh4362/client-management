@@ -59,6 +59,11 @@ module.exports = async (req, res) => {
 
       if (id) {
         query = query.eq('id', id);
+        // Tele Callers can see the Indian/Foreign lead LISTS, but can only
+        // open a full profile (View Profile) for leads assigned to them.
+        if (user.role === 'tele_caller') {
+          query = query.eq('assigned_to', user.username);
+        }
       }
       if (search) {
         query = query.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%`);

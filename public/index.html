@@ -1279,8 +1279,9 @@
     const empty = document.getElementById(emptyId);
     if (!clients.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
     empty.style.display = 'none';
+    const allowProfile = currentUser.role !== 'tele_caller';
     body.innerHTML = clients.map(c => `
-      <tr class="clickable" onclick="openClientDetail('${c.id}')">
+      <tr class="${allowProfile ? 'clickable' : ''}" ${allowProfile ? `onclick="openClientDetail('${c.id}')"` : ''}>
         <td>${escapeHtml(c.name)}</td>
         <td>${escapeHtml(c.phone_number)}</td>
         <td>${c.categories ? `<span class="badge">${escapeHtml(c.categories.name)}</span>` : '—'}</td>
@@ -1288,7 +1289,7 @@
         <td class="assigned-col">${c.assigned_to ? escapeHtml(c.assigned_to.split('@')[0]) : '—'}</td>
         <td class="added-on">${formatAddedOn(c.created_at)}</td>
         <td class="actions" onclick="event.stopPropagation()">
-          <button class="link-btn" onclick="event.stopPropagation(); openClientDetail('${c.id}')">View Profile</button>
+          ${allowProfile ? `<button class="link-btn" onclick="event.stopPropagation(); openClientDetail('${c.id}')">View Profile</button>` : ''}
           ${canDeleteClients() ? `<button class="delete-btn" onclick="deleteClient('${c.id}', '${c.lead_region || 'india'}')">Delete</button>` : ''}
         </td>
       </tr>`).join('');
