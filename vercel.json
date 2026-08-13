@@ -5,6 +5,10 @@
     { "src": "public/**", "use": "@vercel/static" }
   ],
   "routes": [
+    { "src": "/api/heartbeat", "dest": "/api/activity.js?type=heartbeat" },
+    { "src": "/api/employee-activity", "dest": "/api/activity.js?type=employee-activity" },
+    { "src": "/api/reassign-leads", "dest": "/api/employees.js?type=reassign-leads" },
+    { "src": "/api/team-notes", "dest": "/api/notes.js?type=team-notes" },
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
     { "src": "/(.*)", "dest": "/public/$1" }
   ],
