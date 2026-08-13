@@ -126,7 +126,12 @@ async function startWhatsApp() {
         console.log(`Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts})...`)
         setTimeout(startWhatsApp, delay)
       } else {
-        console.log('Logged out — scan a new QR from the admin panel WhatsApp tab to re-link.')
+        // Logged out (or bad/stale saved session) — clear it and start fresh
+        // so a new QR is generated instead of getting stuck forever.
+        console.log('Logged out — clearing saved session and generating a fresh QR...')
+        if (authState) await authState.clearAll().catch(() => {})
+        reconnectAttempts = 0
+        setTimeout(startWhatsApp, 3000)
       }
     } else if (connection === 'open') {
       isReady = true
